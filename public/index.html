@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Firebase Chat</title>
-    <!-- Add some basic styling if you want, but not required for now -->
     <style>
         body { font-family: sans-serif; margin: 20px; }
+        #usernameInput { width: 80%; padding: 10px; margin-bottom: 10px; }
         #messageInput { width: 80%; padding: 10px; margin-right: 10px; }
         #sendMessage { padding: 10px 20px; }
         #messages { border: 1px solid #ccc; padding: 10px; min-height: 200px; overflow-y: scroll; }
@@ -15,20 +15,17 @@
 <body>
     <h1>My Awesome Firebase Chat</h1>
 
+    <input type="text" id="usernameInput" placeholder="Enter your username...">
+
     <div id="messages"></div>
 
     <input type="text" id="messageInput" placeholder="Type your message...">
     <button id="sendMessage">Send</button>
 
-    <!-- Firebase SDKs - Put these just before the closing </body> tag -->
-    <!-- Firebase SDK for App (always required) -->
     <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
-    <!-- Firebase SDK for Realtime Database -->
     <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
-    <!-- Firebase SDK for Authentication (optional for now, but good to include) -->
     <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
 
-    <!-- Your own app's JavaScript -->
     <script src="app.js"></script>
 </body>
 </html>
