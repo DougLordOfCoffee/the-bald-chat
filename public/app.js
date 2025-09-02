@@ -21,6 +21,18 @@ const messageInput = document.getElementById('messageInput');
 const sendMessageBtn = document.getElementById('sendMessage');
 const messagesDiv = document.getElementById('messages');
 
+<!-- Somewhere in your HTML, add these -->
+<div id="authContainer">
+  <p id="welcomeMessage"></p>
+  <button id="signInButton">Sign in with Google</button>
+  <button id="signOutButton" style="display: none;">Sign Out</button> <!-- Hidden initially -->
+</div>
+
+<!-- Wrap your existing chat elements (messageInput, sendMessageBtn, messagesDiv) in this div -->
+<div id="chatContainer" style="display: none;"> <!-- Hidden initially -->
+  <!-- Your messageInput, sendMessageBtn, messagesDiv and their related HTML go here -->
+</div>
+
 // --- Basic Realtime Database Example ---
 
 // Function to write a new message to the database
