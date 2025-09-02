@@ -55,7 +55,6 @@ function displayMessage(message) {
   const messageElement = document.createElement('p');
   messageElement.textContent = `(${message.username}): ${message.text}`;
   messagesDiv.appendChild(messageElement);
-  // Auto-scroll to the bottom
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
@@ -69,7 +68,7 @@ function setupEventListeners() {
     
     if (messageText) {
       writeNewMessage(usernameText, messageText);
-      messageInput.value = ''; // Clear input after sending
+      messageInput.value = '';
     }
   });
 
