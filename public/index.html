@@ -9,6 +9,7 @@
         #usernameInput { width: 80%; padding: 10px; margin-bottom: 10px; }
         #messageInput { width: 80%; padding: 10px; margin-right: 10px; }
         #sendMessage { padding: 10px 20px; }
+        
        #messages {
   border: 1px solid #ccc;
   padding: 10px;
@@ -16,6 +17,19 @@
   overflow-y: auto;      /* makes it scroll inside */
   background: #f9f9f9;   /* optional: gives a background */
 }
+        <div id="toast" style="
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #333;
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 5px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 9999;
+">Username saved!</div>
 
     </style>
 </head>
