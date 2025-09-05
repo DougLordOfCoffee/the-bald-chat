@@ -53,10 +53,28 @@ function writeNewMessage(username, text) {
  */
 function displayMessage(message) {
   const messageElement = document.createElement('p');
-  messageElement.textContent = `(${message.username}): ${message.text}`;
+
+  if (message.timestamp) {
+    const date = new Date(message.timestamp);
+
+    // Short time for inline display
+    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Full date + time for tooltip
+    const fullDate = date.toLocaleString();
+
+    messageElement.textContent = `[${timeString}] (${message.username}): ${message.text}`;
+
+    // Tooltip when you hover
+    messageElement.title = fullDate;
+  } else {
+    messageElement.textContent = `(${message.username}): ${message.text}`;
+  }
+
   messagesDiv.appendChild(messageElement);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
+
 
 /**
  * Sets up the event listeners for user interactions.
