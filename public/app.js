@@ -14,18 +14,11 @@ let database;
 let usernameInput, messageInput, sendMessageBtn, messagesDiv;
 
 // --- Core Functions ---
-
-/**
- * Initializes Firebase and gets a reference to the database service.
- */
 function initFirebase() {
   firebase.initializeApp(firebaseConfig);
   database = firebase.database();
 }
 
-/**
- * Gets references to all the necessary HTML elements.
- */
 function getDOMElements() {
   usernameInput = document.getElementById('usernameInput');
   messageInput = document.getElementById('messageInput');
@@ -33,27 +26,18 @@ function getDOMElements() {
   messagesDiv = document.getElementById('messages');
 }
 
-
+// --- Username memory with toast ---
 function setupUsernameMemory() {
-  // Load saved username if it exists
   const savedUsername = localStorage.getItem('username');
-  if (savedUsername) {
-    usernameInput.value = savedUsername;
-  }
+  if (savedUsername) usernameInput.value = savedUsername;
 
-  // Save username when input loses focus
   usernameInput.addEventListener('blur', () => {
     localStorage.setItem('username', usernameInput.value);
-    showToast("Username saved!"); // show toast here
+    showToast("Username saved!");
   });
 }
 
-
-/**
- * Writes a new message to the Firebase Realtime Database.
- * @param {string} username The user's name.
- * @param {string} text The message content.
- */
+// --- Write a new message ---
 function writeNewMessage(username, text) {
   const newMessageRef = database.ref('messages').push();
   newMessageRef.set({
@@ -63,10 +47,7 @@ function writeNewMessage(username, text) {
   });
 }
 
-/**
- * Creates and displays a message element in the chat window.
- * @param {object} message The message object from Firebase.
- */
+// --- Display a message ---
 function displayMessage(message) {
   const messageElement = document.createElement('div');
   messageElement.id = message.id;
@@ -75,9 +56,7 @@ function displayMessage(message) {
   messageElement.style.alignItems = "center";
   messageElement.style.marginBottom = "5px";
 
-  // Main text
   const textElement = document.createElement('span');
-
   if (message.timestamp) {
     const date = new Date(message.timestamp);
     const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -87,7 +66,6 @@ function displayMessage(message) {
     textElement.textContent = `(${message.username}): ${message.text}`;
   }
 
-  // Delete button
   const deleteBtn = document.createElement('button');
   deleteBtn.textContent = "❌";
   deleteBtn.style.marginLeft = "10px";
@@ -102,23 +80,17 @@ function displayMessage(message) {
     }
   });
 
-  // Put text + delete button together
   messageElement.appendChild(textElement);
   messageElement.appendChild(deleteBtn);
-
   messagesDiv.appendChild(messageElement);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-
-/**
- * Sets up the event listeners for user interactions.
- */
+// --- Event listeners ---
 function setupEventListeners() {
   sendMessageBtn.addEventListener('click', () => {
     const messageText = messageInput.value.trim();
     const usernameText = usernameInput.value.trim() || 'Anonymous';
-    
     if (messageText) {
       writeNewMessage(usernameText, messageText);
       messageInput.value = '';
@@ -126,51 +98,42 @@ function setupEventListeners() {
   });
 
   messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      sendMessageBtn.click();
-    }
+    if (e.key === 'Enter') sendMessageBtn.click();
   });
 }
 
-/**
- * Listens for new messages in the Firebase database and displays them.
- */
+// --- Listen for messages ---
 function listenForMessages() {
   database.ref('messages').on('child_added', (snapshot) => {
     const message = snapshot.val();
-    message.id = snapshot.key;  // attach the Firebase key
+    message.id = snapshot.key;
     displayMessage(message);
+  });
+
+  database.ref('messages').on('child_removed', (snapshot) => {
+    const removedId = snapshot.key;
+    const element = document.getElementById(removedId);
+    if (element) element.remove();
   });
 }
 
-// --- Toast helper function ---
+// --- Toast helper ---
 function showToast(message) {
   const toast = document.getElementById('toast');
   toast.textContent = message;
   toast.style.opacity = 1;
   setTimeout(() => {
     toast.style.opacity = 0;
-  }, 2000); // disappears after 2 seconds
+  }, 2000);
 }
 
-
-// --- Main Application Entry Point ---
-/**
- * The main function to initialize and run the chat application.
- */
+// --- Main entry point ---
 function main() {
   initFirebase();
   getDOMElements();
-  setupUsernameMemory(); // <-- add this line
+  setupUsernameMemory();
   setupEventListeners();
   listenForMessages();
 }
 
-database.ref('messages').on('child_removed', (snapshot) => {
-  const removedId = snapshot.key;
-  const element = document.getElementById(removedId);
-  if (element) element.remove();
-});
-
-// Run the main function when the page loads
 document.addEventListener('DOMContentLoaded', main);
