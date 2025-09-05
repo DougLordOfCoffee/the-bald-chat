@@ -33,6 +33,22 @@ function getDOMElements() {
   messagesDiv = document.getElementById('messages');
 }
 
+
+// --- Auto-save username with localStorage ---
+function setupUsernameMemory() {
+  // Load saved username if it exists
+  const savedUsername = localStorage.getItem('username');
+  if (savedUsername) {
+    usernameInput.value = savedUsername;
+  }
+
+  // Save username whenever it changes
+  usernameInput.addEventListener('input', () => {
+    localStorage.setItem('username', usernameInput.value);
+  });
+}
+
+
 /**
  * Writes a new message to the Firebase Realtime Database.
  * @param {string} username The user's name.
@@ -126,11 +142,7 @@ function listenForMessages() {
     displayMessage(message);
   });
 }
-database.ref('messages').on('child_removed', (snapshot) => {
-  const removedId = snapshot.key;
-  const element = document.getElementById(removedId);
-  if (element) element.remove();
-});
+
 
 
 // --- Main Application Entry Point ---
@@ -140,9 +152,16 @@ database.ref('messages').on('child_removed', (snapshot) => {
 function main() {
   initFirebase();
   getDOMElements();
+  setupUsernameMemory(); // <-- add this line
   setupEventListeners();
   listenForMessages();
 }
+
+database.ref('messages').on('child_removed', (snapshot) => {
+  const removedId = snapshot.key;
+  const element = document.getElementById(removedId);
+  if (element) element.remove();
+});
 
 // Run the main function when the page loads
 document.addEventListener('DOMContentLoaded', main);
