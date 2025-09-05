@@ -9,28 +9,28 @@
         #usernameInput { width: 80%; padding: 10px; margin-bottom: 10px; }
         #messageInput { width: 80%; padding: 10px; margin-right: 10px; }
         #sendMessage { padding: 10px 20px; }
-        
-       #messages {
-  border: 1px solid #ccc;
-  padding: 10px;
-  height: 400px;         /* fixed height for the chat window */
-  overflow-y: auto;      /* makes it scroll inside */
-  background: #f9f9f9;   /* optional: gives a background */
-}
-        <div id="toast" style="
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: #333;
-  color: #fff;
-  padding: 10px 15px;
-  border-radius: 5px;
-  opacity: 0;
-  transition: opacity 0.3s;
-  pointer-events: none;
-  z-index: 9999;
-">Username saved!</div>
+        #messages {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 400px;         /* fixed height for the chat window */
+            overflow-y: auto;      /* makes it scroll inside */
+            background: #f9f9f9;   /* optional: gives a background */
+        }
 
+        /* optional: add toast styles here if you want */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 9999;
+        }
     </style>
 </head>
 <body>
@@ -42,6 +42,9 @@
 
     <input type="text" id="messageInput" placeholder="Type your message...">
     <button id="sendMessage">Send</button>
+
+    <!-- Toast div must be in the body, NOT inside <style> -->
+    <div id="toast">Username saved!</div>
 
     <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
