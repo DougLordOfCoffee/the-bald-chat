@@ -34,7 +34,6 @@ function getDOMElements() {
 }
 
 
-// --- Auto-save username with localStorage ---
 function setupUsernameMemory() {
   // Load saved username if it exists
   const savedUsername = localStorage.getItem('username');
@@ -42,9 +41,10 @@ function setupUsernameMemory() {
     usernameInput.value = savedUsername;
   }
 
-  // Save username whenever it changes
-  usernameInput.addEventListener('input', () => {
+  // Save username when input loses focus
+  usernameInput.addEventListener('blur', () => {
     localStorage.setItem('username', usernameInput.value);
+    showToast("Username saved!"); // show toast here
   });
 }
 
@@ -143,6 +143,15 @@ function listenForMessages() {
   });
 }
 
+// --- Toast helper function ---
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.style.opacity = 1;
+  setTimeout(() => {
+    toast.style.opacity = 0;
+  }, 2000); // disappears after 2 seconds
+}
 
 
 // --- Main Application Entry Point ---
