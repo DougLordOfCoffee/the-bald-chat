@@ -9,7 +9,14 @@
         #usernameInput { width: 80%; padding: 10px; margin-bottom: 10px; }
         #messageInput { width: 80%; padding: 10px; margin-right: 10px; }
         #sendMessage { padding: 10px 20px; }
-        #messages { border: 1px solid #ccc; padding: 10px; min-height: 200px; overflow-y: scroll; }
+       #messages {
+  border: 1px solid #ccc;
+  padding: 10px;
+  height: 400px;         /* fixed height for the chat window */
+  overflow-y: auto;      /* makes it scroll inside */
+  background: #f9f9f9;   /* optional: gives a background */
+}
+
     </style>
 </head>
 <body>
