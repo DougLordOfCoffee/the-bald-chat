@@ -31,11 +31,21 @@ function setupUsernameMemory() {
   const savedUsername = localStorage.getItem('username');
   if (savedUsername) usernameInput.value = savedUsername;
 
-  usernameInput.addEventListener('blur', () => {
-    localStorage.setItem('username', usernameInput.value);
-    showToast("Username saved!");
+  // Save on blur OR Enter key
+  usernameInput.addEventListener('blur', saveUsername);
+  usernameInput.addEventListener('keypress', (e) => {
+    if (e.key === "Enter") saveUsername();
   });
+
+  function saveUsername() {
+    const val = usernameInput.value.trim();
+    if (val) {
+      localStorage.setItem('username', val);
+      showToast("Username saved!");
+    }
+  }
 }
+
 
 // --- Write a new message ---
 function writeNewMessage(username, text) {
