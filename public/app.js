@@ -57,15 +57,15 @@ function displayMessage(message) {
   if (message.timestamp) {
     const date = new Date(message.timestamp);
 
-    // Short time for inline display
+    // Inline display (short time)
     const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Full date + time for tooltip
+    // Tooltip (full date + time)
     const fullDate = date.toLocaleString();
 
     messageElement.textContent = `[${timeString}] (${message.username}): ${message.text}`;
 
-    // Tooltip when you hover
+    // Tooltip on hover
     messageElement.title = fullDate;
   } else {
     messageElement.textContent = `(${message.username}): ${message.text}`;
