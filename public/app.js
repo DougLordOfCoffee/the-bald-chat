@@ -52,24 +52,43 @@ function writeNewMessage(username, text) {
  * @param {object} message The message object from Firebase.
  */
 function displayMessage(message) {
-  const messageElement = document.createElement('p');
+  const messageElement = document.createElement('div');
+  messageElement.id = message.id;
+  messageElement.style.display = "flex";
+  messageElement.style.justifyContent = "space-between";
+  messageElement.style.alignItems = "center";
+  messageElement.style.marginBottom = "5px";
+
+  // Main text
+  const textElement = document.createElement('span');
 
   if (message.timestamp) {
     const date = new Date(message.timestamp);
-
-    // Inline display (short time)
     const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    // Tooltip (full date + time)
-    const fullDate = date.toLocaleString();
-
-    messageElement.textContent = `[${timeString}] (${message.username}): ${message.text}`;
-
-    // Tooltip on hover
-    messageElement.title = fullDate;
+    textElement.textContent = `[${timeString}] (${message.username}): ${message.text}`;
+    textElement.title = date.toLocaleString();
   } else {
-    messageElement.textContent = `(${message.username}): ${message.text}`;
+    textElement.textContent = `(${message.username}): ${message.text}`;
   }
+
+  // Delete button
+  const deleteBtn = document.createElement('button');
+  deleteBtn.textContent = "❌";
+  deleteBtn.style.marginLeft = "10px";
+  deleteBtn.style.cursor = "pointer";
+  deleteBtn.style.border = "none";
+  deleteBtn.style.background = "transparent";
+  deleteBtn.style.fontSize = "14px";
+
+  deleteBtn.addEventListener('click', () => {
+    if (confirm("Delete this message?")) {
+      database.ref('messages').child(message.id).remove();
+    }
+  });
+
+  // Put text + delete button together
+  messageElement.appendChild(textElement);
+  messageElement.appendChild(deleteBtn);
 
   messagesDiv.appendChild(messageElement);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -103,9 +122,16 @@ function setupEventListeners() {
 function listenForMessages() {
   database.ref('messages').on('child_added', (snapshot) => {
     const message = snapshot.val();
+    message.id = snapshot.key;  // attach the Firebase key
     displayMessage(message);
   });
 }
+database.ref('messages').on('child_removed', (snapshot) => {
+  const removedId = snapshot.key;
+  const element = document.getElementById(removedId);
+  if (element) element.remove();
+});
+
 
 // --- Main Application Entry Point ---
 /**
