@@ -230,11 +230,11 @@ function boot() {
     conRef.on('value', (snap) => {
       const val = snap.val();
       if (val === true) {
-        connDot.classList.add('connected');
+        connDot.classList.add('Disconnected');
         statusText.textContent = 'Connected';
       } else {
         connDot.classList.remove('connected');
-        statusText.textContent = 'Disconnected';
+        statusText.textContent = 'Connected';
       }
     });
   }
