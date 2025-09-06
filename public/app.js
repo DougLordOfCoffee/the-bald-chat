@@ -1,3 +1,4 @@
+// app.js — improved / integrated version
 // --- Firebase Configuration ---
 const firebaseConfig = {
   apiKey: "AIzaSyAANuaXF-zSqAs9kzIBnW3ROLDwxGXA1p8",
@@ -9,141 +10,142 @@ const firebaseConfig = {
   databaseURL: "https://the-bald-chat-default-rtdb.firebaseio.com"
 };
 
-// --- Global Firebase and DOM References ---
-let database;
-let usernameInput, messageInput, sendMessageBtn, messagesDiv;
+/* ========= Initialization ========= */
+let database = null;
 
-// --- Core Functions ---
 function initFirebase() {
-  firebase.initializeApp(firebaseConfig);
-  database = firebase.database();
-}
-
-function getDOMElements() {
-  usernameInput = document.getElementById('usernameInput');
-  messageInput = document.getElementById('messageInput');
-  sendMessageBtn = document.getElementById('sendMessage');
-  messagesDiv = document.getElementById('messages');
-}
-
-// --- Username memory with toast ---
-function setupUsernameMemory() {
-  const savedUsername = localStorage.getItem('username');
-  if (savedUsername) usernameInput.value = savedUsername;
-
-  // Save on blur OR Enter key
-  usernameInput.addEventListener('blur', saveUsername);
-  usernameInput.addEventListener('keypress', (e) => {
-    if (e.key === "Enter") saveUsername();
-  });
-
-  function saveUsername() {
-    const val = usernameInput.value.trim();
-    if (val) {
-      localStorage.setItem('username', val);
-      showToast("Username saved!");
+  try {
+    if (!firebase.apps || !firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
     }
+    database = firebase.database();
+    console.log('Firebase initialized');
+  } catch (err) {
+    console.error('Firebase init error', err);
   }
 }
+// initialize immediately
+initFirebase();
 
+/* ========= Utilities ========= */
+function getSavedUsername() {
+  // New UI uses 'baldchat_username', older code used 'username'
+  return localStorage.getItem('baldchat_username') || localStorage.getItem('username') || null;
+}
 
-// --- Write a new message ---
-function writeNewMessage(username, text) {
-  const newMessageRef = database.ref('messages').push();
-  newMessageRef.set({
-    username: username,
-    text: text,
+function showToast(msg, ms = 2000) {
+  const t = document.getElementById('toast');
+  if (!t) {
+    console.log('Toast:', msg);
+    return;
+  }
+  t.textContent = msg;
+  t.style.opacity = 1;
+  t.style.transform = 'translateY(0)';
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => {
+    t.style.opacity = 0;
+    t.style.transform = 'translateY(8px)';
+  }, ms);
+}
+
+/* ========= Public API for UI ========= */
+
+/**
+ * Send a message to Firebase realtime DB.
+ * payload: { username, text, ts? }
+ * Returns a Promise that resolves to the saved message object { id, username, text, ts }
+ */
+window.sendMessageToFirebase = async function(payload = {}) {
+  if (!database) {
+    throw new Error('Firebase not initialized');
+  }
+  const username = (payload.username || getSavedUsername() || 'Anonymous').trim();
+  const text = (payload.text || '').trim();
+  if (!text) {
+    throw new Error('Message text required');
+  }
+
+  const ref = database.ref('messages').push();
+  const msg = {
+    id: ref.key,
+    username,
+    text,
     timestamp: firebase.database.ServerValue.TIMESTAMP
-  });
-}
+  };
 
-// --- Display a message ---
-function displayMessage(message) {
-  const messageElement = document.createElement('div');
-  messageElement.id = message.id;
-  messageElement.style.display = "flex";
-  messageElement.style.justifyContent = "space-between";
-  messageElement.style.alignItems = "center";
-  messageElement.style.marginBottom = "5px";
+  await ref.set(msg);
+  return { id: ref.key, username, text, ts: Date.now() };
+};
 
-  const textElement = document.createElement('span');
-  if (message.timestamp) {
-    const date = new Date(message.timestamp);
-    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    textElement.textContent = `[${timeString}] (${message.username}): ${message.text}`;
-    textElement.title = date.toLocaleString();
-  } else {
-    textElement.textContent = `(${message.username}): ${message.text}`;
+/**
+ * Initialize listeners and forward incoming messages to the provided callback.
+ * onMessage(msg) will be called for each child_added. msg will have { id, username, text, timestamp }.
+ */
+window.initFirebaseListeners = function(onMessage) {
+  if (!database) {
+    console.warn('initFirebaseListeners: firebase not initialized yet, attempting init');
+    initFirebase();
+  }
+  if (!onMessage || typeof onMessage !== 'function') {
+    console.warn('initFirebaseListeners expects a callback function.');
+    return;
   }
 
-  const deleteBtn = document.createElement('button');
-  deleteBtn.textContent = "❌";
-  deleteBtn.style.marginLeft = "10px";
-  deleteBtn.style.cursor = "pointer";
-  deleteBtn.style.border = "none";
-  deleteBtn.style.background = "transparent";
-  deleteBtn.style.fontSize = "14px";
+  const ref = database.ref('messages').limitToLast(500);
 
-  deleteBtn.addEventListener('click', () => {
-    if (confirm("Delete this message?")) {
-      database.ref('messages').child(message.id).remove();
+  // Avoid attaching multiple identical listeners
+  ref.off();
+
+  // track seen keys in this session to avoid double-calls
+  const seen = new Set();
+
+  ref.on('child_added', (snap) => {
+    const val = snap.val();
+    if (!val) return;
+    const id = snap.key;
+
+    if (seen.has(id)) return;
+    seen.add(id);
+
+    // normalize shape for UI
+    const msg = {
+      id,
+      username: val.username || 'Anonymous',
+      text: val.text || '',
+      timestamp: val.timestamp || Date.now()
+    };
+
+    try { onMessage(msg); } catch (err) { console.error('onMessage callback error', err); }
+  });
+
+  // child_removed: notify UI to remove element with that id (UI should handle removing)
+  ref.on('child_removed', (snap) => {
+    const id = snap.key;
+    // expose a simple hook: if the UI defines window.removeMessageFromRemote, call it
+    if (window.removeMessageFromRemote && typeof window.removeMessageFromRemote === 'function') {
+      window.removeMessageFromRemote(id);
+    } else {
+      // fallback: remove element by id if it exists
+      const el = document.querySelector(`[data-id="${id}"], #${CSS.escape(id)}`);
+      if (el) el.remove();
     }
   });
 
-  messageElement.appendChild(textElement);
-  messageElement.appendChild(deleteBtn);
-  messagesDiv.appendChild(messageElement);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-// --- Event listeners ---
-function setupEventListeners() {
-  sendMessageBtn.addEventListener('click', () => {
-    const messageText = messageInput.value.trim();
-    const usernameText = usernameInput.value.trim() || 'Anonymous';
-    if (messageText) {
-      writeNewMessage(usernameText, messageText);
-      messageInput.value = '';
+  // child_changed: forward edits
+  ref.on('child_changed', (snap) => {
+    const val = snap.val();
+    const id = snap.key;
+    if (window.updateMessageFromRemote && typeof window.updateMessageFromRemote === 'function') {
+      const msg = { id, username: val.username, text: val.text, timestamp: val.timestamp };
+      window.updateMessageFromRemote(msg);
     }
   });
 
-  messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendMessageBtn.click();
-  });
-}
+  console.log('Firebase listeners attached');
+};
 
-// --- Listen for messages ---
-function listenForMessages() {
-  database.ref('messages').on('child_added', (snapshot) => {
-    const message = snapshot.val();
-    message.id = snapshot.key;
-    displayMessage(message);
-  });
-
-  database.ref('messages').on('child_removed', (snapshot) => {
-    const removedId = snapshot.key;
-    const element = document.getElementById(removedId);
-    if (element) element.remove();
-  });
-}
-
-// --- Toast helper ---
-function showToast(message) {
-  const toast = document.getElementById('toast');
-  toast.textContent = message;
-  toast.style.opacity = 1;
-  setTimeout(() => {
-    toast.style.opacity = 0;
-  }, 2000);
-}
-
-// --- Main entry point ---
-function main() {
-  initFirebase();
-  getDOMElements();
-  setupUsernameMemory();
-  setupEventListeners();
-  listenForMessages();
-}
-
-document.addEventListener('DOMContentLoaded', main);
+/**
+ * Delete a message by id.
+ * This will attempt to remove /messages/<id>. Firebase rules must allow it.
+ * Deletion is *re
