@@ -374,13 +374,6 @@
         try { window.sendMessageToFirebase({ username, text, ts: Date.now() }); }
         catch(e){ console.warn('sendMessageToFirebase failed', e); }
       } else {
-        // standalone demo: simulate remote echo after a short delay
-        setTimeout(()=> {
-          const echo = { id: 'echo-' + Date.now(), username: 'Tectone', text: 'Echo: ' + text, ts: Date.now() };
-          addMessage(echo);
-        }, 700);
-      }
-    }
 
     sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keydown', (e)=>{
