@@ -235,6 +235,14 @@
   <!-- Accessible toast -->
   <div id="toast" role="status" aria-live="polite" style="position:fixed;right:20px;bottom:20px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .25s ease;border-radius:10px;padding:10px 14px;background:linear-gradient(180deg,var(--accent-2),var(--accent));color:#071226;font-weight:700;box-shadow:0 10px 30px rgba(2,6,23,0.6);"></div>
 
+  <!-- ✅ Firebase compat libs (must be BEFORE app.js) -->
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
+
+  <!-- ✅ Your backend glue -->
+  <script src="app.js"></script>
+
+  <!-- ✅ UI logic -->
   <script>
     /* ---------- Utilities & UI hooks ---------- */
     const $ = id => document.getElementById(id);
@@ -243,7 +251,6 @@
     const messagesEl = $('messages'), sendBtn = $('sendMessage'), msgInput = $('messageInput'), countEl = $('count');
     const toggleThemeBtn = $('toggleTheme');
 
-    // nice random name generator
     function randomName(){
       const adjs = ["Bald","Shiny","Slick","Chrome","Smooth","Brisk","Gleam","Tectone"];
       const nouns = ["Zakk","Dome","Dude","King","Oracle","Ranger","Shade","Bolt"];
@@ -258,17 +265,14 @@
       showToast._t = setTimeout(()=>{ toastEl.style.opacity='0'; toastEl.style.transform='translateY(8px)'; }, ms);
     }
 
-    // make avatar initials and color
     function setAvatarFromName(name){
       const initial = name?.trim()?.charAt(0)?.toUpperCase() || 'B';
       sidebarAvatar.textContent = initial;
-      // color based on hash
       const hash = [...(name||'')].reduce((s,c)=>s + c.charCodeAt(0), 0);
       const hue = hash % 360;
       sidebarAvatar.style.background = `linear-gradient(180deg,hsl(${hue} 70% 32%), hsl(${(hue+20)%360} 70% 24%))`;
     }
 
-    // save username locally
     function saveUsername(){
       const v = usernameInput.value.trim();
       if(!v) { showToast('Please enter a username'); return; }
@@ -282,21 +286,16 @@
       setAvatarFromName('');
       showToast('Cleared saved name');
     }
-
-    // load username on start
     (function initUsername(){
       const saved = localStorage.getItem('baldchat_username');
       if(saved){ usernameInput.value = saved; setAvatarFromName(saved); }
       else setAvatarFromName('');
     })();
-
     saveBtn.addEventListener('click', saveUsername);
-    clearBtn.addEventListener('click', ()=>{ clearUsername(); });
+    clearBtn.addEventListener('click', clearUsername);
     randomBtn.addEventListener('click', ()=>{ usernameInput.value = randomName(); setAvatarFromName(usernameInput.value); });
-
     usernameInput.addEventListener('input', ()=> setAvatarFromName(usernameInput.value));
 
-    // theme toggle
     toggleThemeBtn.addEventListener('click', ()=>{
       const el = document.documentElement;
       const next = el.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
@@ -305,120 +304,75 @@
     });
 
     /* ---------- Message rendering ---------- */
-    function formatTime(ts){
-      const d = new Date(ts || Date.now());
-      return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    }
+    function formatTime(ts){ const d = new Date(ts || Date.now()); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
     function createMessageElement({ id, username='Anonymous', text='', ts=Date.now(), me=false }){
       const wrapper = document.createElement('div');
       wrapper.className = 'msg' + (me ? ' me' : '');
       wrapper.dataset.id = id || '';
-      // meta (avatar/initials + name/time)
       const meta = document.createElement('div');
       meta.className = 'meta';
       meta.innerHTML = `<div style="width:36px;height:36px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));font-weight:700;color:var(--accent-2)">${(username||'A').charAt(0).toUpperCase()}</div>`;
       const bubble = document.createElement('div');
       bubble.className = 'bubble';
       bubble.innerHTML = `<div class="author">${escapeHtml(username)}</div><div class="text">${escapeHtml(text).replace(/\n/g,'<br>')}</div><div class="time">${formatTime(ts)}</div>`;
-
-      wrapper.appendChild(meta);
-      wrapper.appendChild(bubble);
-
-      // small actions on hover (delete) — visible to the message owner only
-      wrapper.addEventListener('mouseenter', ()=> {
-        if(localStorage.getItem('baldchat_username') === username){
-          bubble.style.position='relative';
-          if(!bubble.querySelector('.deleteBtn')){
-            const d = document.createElement('button');
-            d.className='deleteBtn';
-            d.textContent='×';
-            Object.assign(d.style,{position:'absolute',top:'6px',right:'6px',background:'transparent',border:'none',color:'rgba(255,255,255,0.6)',cursor:'pointer',fontSize:'16px'});
-            d.title = 'Delete message (local)';
-            d.addEventListener('click',(e)=>{ e.stopPropagation(); wrapper.remove(); updateCount(); });
-            bubble.appendChild(d);
-          }
-        }
-      });
-
+      wrapper.appendChild(meta); wrapper.appendChild(bubble);
       return wrapper;
     }
 
-    function escapeHtml(s){
-      return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
-
-    function addMessage(msg, options={}){
-      // msg: {id, username, text, ts}
-      const me = localStorage.getItem('baldchat_username') === msg.username;
-      const el = createMessageElement({...msg, me});
+    function addMessage(msg){
+      // Normalize timestamp prop: Firebase uses `timestamp`, UI uses `ts`
+      const ts = msg.ts ?? msg.timestamp ?? Date.now();
+      const me = (localStorage.getItem('baldchat_username') || '') === (msg.username || '');
+      const el = createMessageElement({ ...msg, ts, me });
       messagesEl.appendChild(el);
       messagesEl.scrollTop = messagesEl.scrollHeight;
-      updateCount();
+      countEl.textContent = messagesEl.children.length + (messagesEl.children.length === 1 ? ' message' : ' messages');
     }
 
-    function updateCount(){ countEl.textContent = messagesEl.children.length + (messagesEl.children.length === 1 ? ' message' : ' messages'); }
-
     /* ---------- Sending / keyboard ---------- */
-    function sendMessage(){
+    async function sendMessage(){
       const text = msgInput.value.trim();
       if(!text) return showToast('Type something first');
       const username = localStorage.getItem('baldchat_username') || usernameInput.value.trim() || 'Anonymous';
-      // local render
-      const localMsg = { id: 'local-' + Date.now(), username, text, ts: Date.now() };
-      addMessage(localMsg);
-      msgInput.value = ''; msgInput.focus();
 
-      // hook: if your firebase code exposes window.sendMessageToFirebase, call it
-      if(window.sendMessageToFirebase && typeof window.sendMessageToFirebase === 'function'){
-        try { window.sendMessageToFirebase({ username, text, ts: Date.now() }); }
-        catch(e){ console.warn('sendMessageToFirebase failed', e); }
-      } else {
-
-    sendBtn.addEventListener('click', sendMessage);
-    msgInput.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter' && !e.shiftKey){
-        e.preventDefault();
-        sendMessage();
+      // ✅ Do NOT locally render first (prevents dupes). Let Firebase child_added render it.
+      try {
+        if(window.sendMessageToFirebase) {
+          await window.sendMessageToFirebase({ username, text, ts: Date.now() });
+          msgInput.value = '';
+          msgInput.focus();
+        } else {
+          showToast('Backend not loaded');
+        }
+      } catch (e){
+        console.warn('sendMessageToFirebase failed', e);
+        showToast('Failed to send');
       }
-    });
+    }
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
 
     /* ---------- Incoming remote messages hook ---------- */
-    // If your external Firebase code wants to push messages into the UI, call:
-    // window.receiveMessageFromRemote({ id, username, text, ts })
     window.receiveMessageFromRemote = function(msg){
-      // Avoid duplicates: if a message with same id exists, skip
-      if(msg && msg.id && messagesEl.querySelector(`[data-id="${msg.id}"]`)) return;
+      if(msg && msg.id && messagesEl.querySelector(`[data-id="${msg.id}"]`)) return; // de-dupe
       addMessage(msg);
     };
 
-    /* ---------- Attempt to call your firebase init hook if present ---------- */
-    // If your app.js defines initFirebaseListeners(callback) we call it and give it a function to call for incoming messages:
-    if(window.initFirebaseListeners && typeof window.initFirebaseListeners === 'function'){
-      try {
-// This function is called by initFirebaseListeners whenever a new message arrives
-window.receiveMessageFromRemote = function(msg) {
-  addMessage(msg); // reuse your UI’s function that renders bubbles
-};
-
-      } catch(e){
-        console.warn('initFirebaseListeners failed', e);
+    /* ---------- Wire up Firebase listeners once page + app.js are ready ---------- */
+    window.addEventListener('load', ()=>{
+      if (window.initFirebaseListeners) {
+        window.initFirebaseListeners(window.receiveMessageFromRemote);
+      } else {
+        console.warn('initFirebaseListeners not found (is app.js loaded?)');
       }
-    }
+      msgInput.focus();
+    });
 
-    /* ---------- Small demo messages so UI doesn't look empty ---------- */
-    (function seedDemo(){
-      const existing = messagesEl.children.length;
-      if(existing) return;
-      const demo = [
-        { id: 'd1', username:'Tectone', text:"Welcome to the Dome. Keep it bald and kind.", ts: Date.now() - 1000*60*40 },
-        { id: 'd2', username:'BaldZakk', text:"hey! testing the new UI — looks slick.", ts: Date.now() - 1000*60*30 },
-      ];
-      demo.forEach(m=>addMessage(m));
-    })();
-
-    /* ---------- small accessibility focus improvements ---------- */
-    window.addEventListener('load', ()=> msgInput.focus());
+    /* ---------- Optional demo: disable to avoid confusion ---------- */
+    // (commented out so you don't see "Tectone" unless you want it)
+    // (function seedDemo(){ if(!window.initFirebaseListeners) [{ id:'d1', username:'Tectone', text:'Welcome to the Dome.', ts: Date.now()-2e6 },{ id:'d2', username:'BaldZakk', text:'Testing the new UI!', ts: Date.now()-1e6 }].forEach(addMessage); })();
   </script>
 </body>
 </html>
