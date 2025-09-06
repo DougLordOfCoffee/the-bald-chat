@@ -59,57 +59,51 @@ function writeNewMessage(username, text) {
 
 // --- Display a message ---
 function displayMessage(message) {
-  const messageElement = document.createElement('div');
-  messageElement.id = message.id;
-  messageElement.style.display = "flex";
-  messageElement.style.justifyContent = "space-between";
-  messageElement.style.alignItems = "center";
-  messageElement.style.marginBottom = "5px";
+  const messageElement = document.createElement('div');
+  messageElement.id = message.id;
+  messageElement.style.display = "flex";
+  messageElement.style.justifyContent = "space-between";
+  messageElement.style.alignItems = "center";
+  messageElement.style.marginBottom = "5px";
 
-  const textElement = document.createElement('span');
-  if (message.timestamp) {
-    const date = new Date(message.timestamp);
-    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    textElement.textContent = `[${timeString}] (${message.username}): ${message.text}`;
-    textElement.title = date.toLocaleString();
-  } else {
-    textElement.textContent = `(${message.username}): ${message.text}`;
-  }
+  const textElement = document.createElement('span');
+  if (message.timestamp) {
+    const date = new Date(message.timestamp);
+    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    textElement.textContent = `[${timeString}] (${message.username}): ${message.text}`;
+    textElement.title = date.toLocaleString();
+  } else {
+    textElement.textContent = `(${message.username}): ${message.text}`;
+  }
 
-  const deleteBtn = document.createElement('button');
-  deleteBtn.textContent = "❌";
-  deleteBtn.style.marginLeft = "10px";
-  deleteBtn.style.cursor = "pointer";
-  deleteBtn.style.border = "none";
-  deleteBtn.style.background = "transparent";
-  deleteBtn.style.fontSize = "14px";
+  const deleteBtn = document.createElement('button');
+  deleteBtn.textContent = "❌";
+  deleteBtn.style.marginLeft = "10px";
+  deleteBtn.style.cursor = "pointer";
+  deleteBtn.style.border = "none";
+  deleteBtn.style.background = "transparent";
+  deleteBtn.style.fontSize = "14px";
+  // --- NEW: Hide the button by default ---
+  deleteBtn.style.visibility = "hidden";
 
-  deleteBtn.addEventListener('click', () => {
-    if (confirm("Delete this message?")) {
-      database.ref('messages').child(message.id).remove();
-    }
-  });
+  deleteBtn.addEventListener('click', () => {
+    if (confirm("Delete this message?")) {
+      database.ref('messages').child(message.id).remove();
+    }
+  });
 
-  messageElement.appendChild(textElement);
-  messageElement.appendChild(deleteBtn);
-  messagesDiv.appendChild(messageElement);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
+  // --- NEW: Add event listeners for mouse hover ---
+  messageElement.addEventListener('mouseenter', () => {
+    deleteBtn.style.visibility = "visible";
+  });
+  messageElement.addEventListener('mouseleave', () => {
+    deleteBtn.style.visibility = "hidden";
+  });
 
-// --- Event listeners ---
-function setupEventListeners() {
-  sendMessageBtn.addEventListener('click', () => {
-    const messageText = messageInput.value.trim();
-    const usernameText = usernameInput.value.trim() || 'Anonymous';
-    if (messageText) {
-      writeNewMessage(usernameText, messageText);
-      messageInput.value = '';
-    }
-  });
-
-  messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendMessageBtn.click();
-  });
+  messageElement.appendChild(textElement);
+  messageElement.appendChild(deleteBtn);
+  messagesDiv.appendChild(messageElement);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 // --- Listen for messages ---
