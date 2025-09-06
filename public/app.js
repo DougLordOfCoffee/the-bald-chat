@@ -194,48 +194,6 @@ window.deleteMessageFromFirebase = async function(id, opts = { force: false }) {
   return true;
 };
 
-/* ========= Optional: Backwards-compat small DOM helpers =========
-   If you were using the older simple HTML, the following will attach to existing DOM elements
-   (but if you're using the new fancy UI, it already handles sending and rendering).
-*/
-(function attachLegacyHandlers() {
-  // If legacy elements exist and no existing sendMessageToFirebase wiring,
-  // wire the send button to call the exported function.
-  try {
-    const sendBtn = document.getElementById('sendMessage');
-    const usernameInput = document.getElementById('usernameInput');
-    const messageInput = document.getElementById('messageInput');
-
-    if (sendBtn && messageInput) {
-      // Avoid adding duplicate listeners
-      if (!sendBtn.dataset._wired) {
-        sendBtn.addEventListener('click', async (e) => {
-          const text = messageInput.value.trim();
-          if (!text) return;
-          const username = (usernameInput && usernameInput.value.trim()) || getSavedUsername() || 'Anonymous';
-          try {
-            await window.sendMessageToFirebase({ username, text });
-            // optionally clear input for legacy behavior:
-            messageInput.value = '';
-          } catch (err) {
-            console.error('sendMessage failed', err);
-            showToast('Failed to send message');
-          }
-        });
-        // Enter to send (legacy)
-        messageInput.addEventListener('keypress', (ev) => {
-          if (ev.key === 'Enter') {
-            ev.preventDefault();
-            sendBtn.click();
-          }
-        });
-        sendBtn.dataset._wired = '1';
-      }
-    }
-  } catch (e) {
-    console.warn('attachLegacyHandlers error', e);
-  }
-})();
 
 /* ========= Security & notes =========
  - This client-side code enforces "only delete if username matches" as a UX safeguard,
