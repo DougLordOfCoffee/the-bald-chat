@@ -57,7 +57,6 @@ function writeNewMessage(username, text) {
   });
 }
 
-// --- Display a message ---
 function displayMessage(message) {
   const messageElement = document.createElement('div');
   messageElement.id = message.id;
@@ -83,14 +82,28 @@ function displayMessage(message) {
   deleteBtn.style.border = "none";
   deleteBtn.style.background = "transparent";
   deleteBtn.style.fontSize = "14px";
-  // --- NEW: Hide the button by default ---
-  deleteBtn.style.visibility = "hidden";
+  deleteBtn.style.opacity = "0"; // Initially hide the button by making it transparent
+  deleteBtn.style.transition = "opacity 0.3s ease-in-out"; // Add a smooth transition
 
   deleteBtn.addEventListener('click', () => {
     if (confirm("Delete this message?")) {
       database.ref('messages').child(message.id).remove();
     }
   });
+
+  // Use mouseenter and mouseleave to change opacity
+  messageElement.addEventListener('mouseenter', () => {
+    deleteBtn.style.opacity = "1"; // Show the button when the mouse hovers
+  });
+  messageElement.addEventListener('mouseleave', () => {
+    deleteBtn.style.opacity = "0"; // Hide the button when the mouse leaves
+  });
+
+  messageElement.appendChild(textElement);
+  messageElement.appendChild(deleteBtn);
+  messagesDiv.appendChild(messageElement);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
 
   // --- NEW: Add event listeners for mouse hover ---
   messageElement.addEventListener('mouseenter', () => {
