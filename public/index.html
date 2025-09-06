@@ -1,56 +1,55 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>The Bald Chat — Inside The Dome</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Bald Chat</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        #usernameInput { width: 80%; padding: 10px; margin-bottom: 10px; }
+        #messageInput { width: 80%; padding: 10px; margin-right: 10px; }
+        #sendMessage { padding: 10px 20px; }
+        #messages {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 400px;         /* fixed height for the chat window */
+            overflow-y: auto;      /* makes it scroll inside */
+            background: #f9f9f9;   /* optional: gives a background */
+        }
 
-  <!-- Firebase libs -->
-  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
-
-  <!-- Your JS -->
-  <script src="app.js" defer></script>
-
-  <style>
-    body { background:#0f1724; color:white; font-family:sans-serif; margin:0; padding:0; }
-    #chat { display:flex; flex-direction:column; height:100vh; }
-    #header { background:#1e293b; padding:10px; display:flex; align-items:center; gap:10px; }
-    #connDot { width:10px; height:10px; border-radius:50%; background:#555; }
-    #connDot.connected { background:#4ade80; }
-    #messages { flex:1; overflow-y:auto; padding:10px; }
-    .msg { display:flex; align-items:flex-start; margin:5px 0; }
-    .msg.me { justify-content:flex-end; }
-    .avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:12px; margin-right:8px; }
-    .bubble { background:#334155; padding:8px 10px; border-radius:8px; max-width:70%; }
-    .meta { font-size:10px; color:#94a3b8; display:flex; justify-content:space-between; }
-    .text { margin-top:2px; }
-    #inputBar { display:flex; padding:10px; background:#1e293b; gap:6px; }
-    #usernameInput, #messageInput { flex:1; padding:6px; border:none; border-radius:4px; }
-    #sendMessage { padding:6px 12px; border:none; border-radius:4px; background:#3b82f6; color:white; cursor:pointer; }
-    #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#3b82f6; color:white; padding:8px 14px; border-radius:6px; opacity:0; transition:opacity 0.3s; }
-    #toast.show { opacity:1; }
-  </style>
+        /* optional: add toast styles here if you want */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 9999;
+        }
+    </style>
 </head>
 <body>
-  <div id="chat">
-    <div id="header">
-      <div id="connDot"></div>
-      <span id="statusText">Disconnected</span>
-      <span>Messages: <span id="messageCount">0</span></span>
-      <span>User: <span id="uidShort">—</span></span>
-    </div>
+    <h1>Inside The Dome</h1>
+
+    <input type="text" id="usernameInput" placeholder="Enter your username...">
 
     <div id="messages"></div>
 
-    <div id="inputBar">
-      <input id="usernameInput" type="text" placeholder="Enter username" />
-      <input id="messageInput" type="text" placeholder="Type a message..." />
-      <button id="sendMessage">Send</button>
-    </div>
-  </div>
+    <input type="text" id="messageInput" placeholder="Type your message...">
+    <button id="sendMessage">Send</button>
 
-  <div id="toast" role="status" aria-live="polite">Saved</div>
+    <!-- Toast div must be in the body, NOT inside <style> -->
+    <div id="toast">Username saved!</div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
+
+    <script src="app.js"></script>
 </body>
 </html>
