@@ -269,6 +269,19 @@ function boot() {
   };
 }
 
+// at the bottom of boot()
+setInterval(() => {
+  database.ref('messages').limitToLast(50).once('value', (snap) => {
+    messagesDiv.innerHTML = '';
+    snap.forEach(child => {
+      const el = createMessageElement(child.key, child.val());
+      messagesDiv.appendChild(el);
+    });
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  });
+}, 4000);
+
+
 // If script is deferred/dom ready, run immediately; otherwise wait for DOMContentLoaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', boot);
