@@ -403,8 +403,11 @@
     // If your app.js defines initFirebaseListeners(callback) we call it and give it a function to call for incoming messages:
     if(window.initFirebaseListeners && typeof window.initFirebaseListeners === 'function'){
       try {
-        // your firebase code should call the supplied callback with message objects
-        window.initFirebaseListeners(window.receiveMessageFromRemote);
+// This function is called by initFirebaseListeners whenever a new message arrives
+window.receiveMessageFromRemote = function(msg) {
+  addMessage(msg); // reuse your UI’s function that renders bubbles
+};
+
       } catch(e){
         console.warn('initFirebaseListeners failed', e);
       }
