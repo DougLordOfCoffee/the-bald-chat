@@ -1,55 +1,428 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Bald Chat</title>
-    <style>
-        body { font-family: sans-serif; margin: 20px; }
-        #usernameInput { width: 80%; padding: 10px; margin-bottom: 10px; }
-        #messageInput { width: 80%; padding: 10px; margin-right: 10px; }
-        #sendMessage { padding: 10px 20px; }
-        #messages {
-            border: 1px solid #ccc;
-            padding: 10px;
-            height: 400px;         /* fixed height for the chat window */
-            overflow-y: auto;      /* makes it scroll inside */
-            background: #f9f9f9;   /* optional: gives a background */
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>The Bald Chat — Inside The Dome</title>
+  <style>
+    :root{
+      --bg: #0f1724;
+      --panel: rgba(255,255,255,0.05);
+      --muted: #9aa4b2;
+      --accent: #ffb86b;
+      --accent-2: #8be9fd;
+      --me: #7c5cff;
+      --glass: rgba(255,255,255,0.04);
+      --radius: 14px;
+      --max-width: 1100px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    /* Light theme */
+    [data-theme="light"]{
+      --bg: #f3f6fb;
+      --panel: #ffffff;
+      --muted: #6b7280;
+      --accent: #FF8A00;
+      --accent-2: #0077CC;
+      --me: #5B21B6;
+      --glass: rgba(0,0,0,0.03);
+    }
 
-        /* optional: add toast styles here if you want */
-        #toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #333;
-            color: #fff;
-            padding: 10px 15px;
-            border-radius: 5px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-            z-index: 9999;
-        }
-    </style>
+    html,body { height:100%; margin:0; background:linear-gradient(180deg,var(--bg), #071426); color: #e6eef8; }
+    .app {
+      max-width: var(--max-width);
+      margin: 28px auto;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    /* Header / Branding */
+    header {
+      grid-column: 1 / -1;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+    }
+    .brand {
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .logo {
+      width:48px; height:48px; border-radius:10px;
+      display:grid; place-items:center;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      font-weight:800; color:#081226;
+      font-size:20px;
+    }
+    h1 { font-size:18px; margin:0; letter-spacing:0.6px; color:inherit; }
+    .sub { color:var(--muted); font-size:13px; margin-top:2px; }
+
+    /* Sidebar */
+    .sidebar {
+      background: linear-gradient(180deg,var(--panel), var(--glass));
+      border-radius: var(--radius);
+      padding:16px;
+      min-height:480px;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .profile {
+      display:flex; gap:12px; align-items:center;
+    }
+    .avatar {
+      width:56px; height:56px; border-radius:12px;
+      display:grid; place-items:center;
+      background:linear-gradient(180deg, #111827, #0b1220);
+      font-weight:700; color:var(--accent-2);
+      font-size:18px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    }
+    .controls { margin-top:8px; display:flex; gap:8px; align-items:center; }
+    input[type="text"].username {
+      flex:1; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.06);
+      background:transparent; color:inherit;
+      outline:none;
+      caret-color:var(--accent);
+    }
+    .btn {
+      background:linear-gradient(180deg,var(--accent), var(--accent-2)); color:#071226;
+      border:none; padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:600;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    }
+    .btn.ghost {
+      background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted);
+      box-shadow:none;
+    }
+
+    /* Chat panel */
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius: var(--radius); padding:14px; min-height:480px;
+      display:flex; flex-direction:column; gap:12px;
+      box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+    }
+
+    .messages {
+      flex:1; overflow:auto; padding:8px 6px; display:flex; flex-direction:column; gap:10px;
+    }
+
+    .msg {
+      max-width:72%;
+      display:flex; gap:10px; align-items:flex-end;
+      transition: transform .18s ease, opacity .18s ease;
+      opacity:0; transform: translateY(8px);
+      animation: pop .25s forwards;
+    }
+    @keyframes pop { to { opacity:1; transform:none; } }
+
+    .msg.me { margin-left:auto; flex-direction:row-reverse; }
+    .bubble {
+      padding:10px 12px; border-radius:12px; background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      color:inherit; font-size:14px; line-height:1.35; box-shadow: 0 8px 20px rgba(2,6,23,0.6);
+    }
+    .msg.me .bubble {
+      background: linear-gradient(180deg,var(--me), rgba(124,92,255,0.9));
+      color: white;
+      border-bottom-right-radius:4px;
+    }
+    .meta {
+      width:36px; text-align:center; font-size:12px; color:var(--muted);
+    }
+    .author {
+      font-weight:700; font-size:12px; margin-bottom:6px; color:var(--muted);
+    }
+    .time { font-size:11px; color:var(--muted); margin-top:6px; }
+
+    /* Input bar */
+    .composer {
+      display:flex; gap:10px; align-items:center; padding:10px; border-radius:12px;
+      background:linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.12));
+    }
+    textarea#messageInput {
+      flex:1; resize:none; min-height:44px; max-height:120px; padding:10px; border-radius:10px;
+      border:1px solid rgba(255,255,255,0.04); background:transparent; color:inherit; outline:none;
+      font-size:14px;
+    }
+    .composer .send {
+      padding:10px 14px; border-radius:10px; border:none; cursor:pointer; font-weight:700;
+      background:linear-gradient(180deg,var(--accent-2), var(--accent));
+      color:#071226;
+    }
+    .small { font-size:12px; color:var(--muted); }
+
+    /* footer hints */
+    .hints { display:flex; justify-content:space-between; gap:10px; margin-top:6px; color:var(--muted); font-size:13px; }
+
+    /* Responsive */
+    @media (max-width:880px){
+      .app { grid-template-columns: 1fr; padding:12px; gap:12px; }
+      .sidebar { order:2; }
+      .panel { order:1; }
+      header { flex-direction:column; align-items:flex-start; gap:8px; }
+    }
+  </style>
 </head>
-<body>
-    <h1>Inside The Dome</h1>
+<body data-theme="dark">
+  <div class="app" role="application" aria-label="Inside The Dome chat">
+    <header>
+      <div class="brand">
+        <div class="logo">BD</div>
+        <div>
+          <h1>Inside The Dome</h1>
+          <div class="sub">A small chat for big bald energy</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="toggleTheme" class="btn ghost" title="Toggle theme">Toggle theme</button>
+        <button id="clearUsername" class="btn ghost" title="Clear saved username">Clear name</button>
+      </div>
+    </header>
 
-    <input type="text" id="usernameInput" placeholder="Enter your username...">
+    <aside class="sidebar" aria-label="User settings">
+      <div class="profile">
+        <div id="sidebarAvatar" class="avatar">B</div>
+        <div style="flex:1">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input id="usernameInput" class="username" type="text" placeholder="Enter username (e.g. BaldZakk)" aria-label="Username">
+          </div>
+          <div class="small" style="margin-top:6px;">Pick a name. It’s saved locally to your browser.</div>
+        </div>
+      </div>
 
-    <div id="messages"></div>
+      <div class="controls">
+        <button id="saveUsername" class="btn">Save</button>
+        <button id="randomName" class="btn ghost" title="Generate a random fun name">Random</button>
+      </div>
 
-    <input type="text" id="messageInput" placeholder="Type your message...">
-    <button id="sendMessage">Send</button>
+      <div style="margin-top:10px;">
+        <div class="small">Quick rules</div>
+        <ul class="small" style="margin-top:8px;color:var(--muted);line-height:1.4;padding-left:18px;">
+          <li>Be chill. Be bald. Be kind.</li>
+          <li>No spam. No doxxing.</li>
+          <li>Press Enter to send, Shift+Enter for a newline.</li>
+        </ul>
+      </div>
 
-    <!-- Toast div must be in the body, NOT inside <style> -->
-    <div id="toast">Username saved!</div>
+      <div style="margin-top:auto;">
+        <div class="small">Theme hint</div>
+        <div class="small" style="margin-top:6px;color:var(--muted)">Use the toggle to switch light/dark for screenshots or streaming.</div>
+      </div>
+    </aside>
 
-    <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
+    <main class="panel" aria-live="polite">
+      <div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions"></div>
 
-    <script src="app.js"></script>
+      <div class="composer" role="region" aria-label="Message composer">
+        <textarea id="messageInput" placeholder="Type a message... (Shift+Enter = newline)" aria-label="Message input"></textarea>
+        <button id="sendMessage" class="send" aria-label="Send message">Send →</button>
+      </div>
+
+      <div class="hints">
+        <div id="count" class="small">0 messages</div>
+        <div class="small">Press Enter to send — Shift+Enter for line break</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Accessible toast -->
+  <div id="toast" role="status" aria-live="polite" style="position:fixed;right:20px;bottom:20px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .25s ease;border-radius:10px;padding:10px 14px;background:linear-gradient(180deg,var(--accent-2),var(--accent));color:#071226;font-weight:700;box-shadow:0 10px 30px rgba(2,6,23,0.6);"></div>
+
+  <script>
+    /* ---------- Utilities & UI hooks ---------- */
+    const $ = id => document.getElementById(id);
+    const toastEl = $('toast'), usernameInput = $('usernameInput'), sidebarAvatar = $('sidebarAvatar');
+    const saveBtn = $('saveUsername'), clearBtn = $('clearUsername'), randomBtn = $('randomName');
+    const messagesEl = $('messages'), sendBtn = $('sendMessage'), msgInput = $('messageInput'), countEl = $('count');
+    const toggleThemeBtn = $('toggleTheme');
+
+    // nice random name generator
+    function randomName(){
+      const adjs = ["Bald","Shiny","Slick","Chrome","Smooth","Brisk","Gleam","Tectone"];
+      const nouns = ["Zakk","Dome","Dude","King","Oracle","Ranger","Shade","Bolt"];
+      return adjs[Math.floor(Math.random()*adjs.length)] + nouns[Math.floor(Math.random()*nouns.length)] + Math.floor(Math.random()*99);
+    }
+
+    function showToast(text, ms=1900){
+      toastEl.textContent = text;
+      toastEl.style.opacity = '1';
+      toastEl.style.transform = 'translateY(0)';
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=>{ toastEl.style.opacity='0'; toastEl.style.transform='translateY(8px)'; }, ms);
+    }
+
+    // make avatar initials and color
+    function setAvatarFromName(name){
+      const initial = name?.trim()?.charAt(0)?.toUpperCase() || 'B';
+      sidebarAvatar.textContent = initial;
+      // color based on hash
+      const hash = [...(name||'')].reduce((s,c)=>s + c.charCodeAt(0), 0);
+      const hue = hash % 360;
+      sidebarAvatar.style.background = `linear-gradient(180deg,hsl(${hue} 70% 32%), hsl(${(hue+20)%360} 70% 24%))`;
+    }
+
+    // save username locally
+    function saveUsername(){
+      const v = usernameInput.value.trim();
+      if(!v) { showToast('Please enter a username'); return; }
+      localStorage.setItem('baldchat_username', v);
+      setAvatarFromName(v);
+      showToast('Username saved!');
+    }
+    function clearUsername(){
+      localStorage.removeItem('baldchat_username');
+      usernameInput.value = '';
+      setAvatarFromName('');
+      showToast('Cleared saved name');
+    }
+
+    // load username on start
+    (function initUsername(){
+      const saved = localStorage.getItem('baldchat_username');
+      if(saved){ usernameInput.value = saved; setAvatarFromName(saved); }
+      else setAvatarFromName('');
+    })();
+
+    saveBtn.addEventListener('click', saveUsername);
+    clearBtn.addEventListener('click', ()=>{ clearUsername(); });
+    randomBtn.addEventListener('click', ()=>{ usernameInput.value = randomName(); setAvatarFromName(usernameInput.value); });
+
+    usernameInput.addEventListener('input', ()=> setAvatarFromName(usernameInput.value));
+
+    // theme toggle
+    toggleThemeBtn.addEventListener('click', ()=>{
+      const el = document.documentElement;
+      const next = el.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      el.setAttribute('data-theme', next);
+      showToast(next === 'light' ? 'Light theme' : 'Dark theme');
+    });
+
+    /* ---------- Message rendering ---------- */
+    function formatTime(ts){
+      const d = new Date(ts || Date.now());
+      return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    }
+
+    function createMessageElement({ id, username='Anonymous', text='', ts=Date.now(), me=false }){
+      const wrapper = document.createElement('div');
+      wrapper.className = 'msg' + (me ? ' me' : '');
+      wrapper.dataset.id = id || '';
+      // meta (avatar/initials + name/time)
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = `<div style="width:36px;height:36px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));font-weight:700;color:var(--accent-2)">${(username||'A').charAt(0).toUpperCase()}</div>`;
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = `<div class="author">${escapeHtml(username)}</div><div class="text">${escapeHtml(text).replace(/\n/g,'<br>')}</div><div class="time">${formatTime(ts)}</div>`;
+
+      wrapper.appendChild(meta);
+      wrapper.appendChild(bubble);
+
+      // small actions on hover (delete) — visible to the message owner only
+      wrapper.addEventListener('mouseenter', ()=> {
+        if(localStorage.getItem('baldchat_username') === username){
+          bubble.style.position='relative';
+          if(!bubble.querySelector('.deleteBtn')){
+            const d = document.createElement('button');
+            d.className='deleteBtn';
+            d.textContent='×';
+            Object.assign(d.style,{position:'absolute',top:'6px',right:'6px',background:'transparent',border:'none',color:'rgba(255,255,255,0.6)',cursor:'pointer',fontSize:'16px'});
+            d.title = 'Delete message (local)';
+            d.addEventListener('click',(e)=>{ e.stopPropagation(); wrapper.remove(); updateCount(); });
+            bubble.appendChild(d);
+          }
+        }
+      });
+
+      return wrapper;
+    }
+
+    function escapeHtml(s){
+      return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    function addMessage(msg, options={}){
+      // msg: {id, username, text, ts}
+      const me = localStorage.getItem('baldchat_username') === msg.username;
+      const el = createMessageElement({...msg, me});
+      messagesEl.appendChild(el);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      updateCount();
+    }
+
+    function updateCount(){ countEl.textContent = messagesEl.children.length + (messagesEl.children.length === 1 ? ' message' : ' messages'); }
+
+    /* ---------- Sending / keyboard ---------- */
+    function sendMessage(){
+      const text = msgInput.value.trim();
+      if(!text) return showToast('Type something first');
+      const username = localStorage.getItem('baldchat_username') || usernameInput.value.trim() || 'Anonymous';
+      // local render
+      const localMsg = { id: 'local-' + Date.now(), username, text, ts: Date.now() };
+      addMessage(localMsg);
+      msgInput.value = ''; msgInput.focus();
+
+      // hook: if your firebase code exposes window.sendMessageToFirebase, call it
+      if(window.sendMessageToFirebase && typeof window.sendMessageToFirebase === 'function'){
+        try { window.sendMessageToFirebase({ username, text, ts: Date.now() }); }
+        catch(e){ console.warn('sendMessageToFirebase failed', e); }
+      } else {
+        // standalone demo: simulate remote echo after a short delay
+        setTimeout(()=> {
+          const echo = { id: 'echo-' + Date.now(), username: 'Tectone', text: 'Echo: ' + text, ts: Date.now() };
+          addMessage(echo);
+        }, 700);
+      }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' && !e.shiftKey){
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    /* ---------- Incoming remote messages hook ---------- */
+    // If your external Firebase code wants to push messages into the UI, call:
+    // window.receiveMessageFromRemote({ id, username, text, ts })
+    window.receiveMessageFromRemote = function(msg){
+      // Avoid duplicates: if a message with same id exists, skip
+      if(msg && msg.id && messagesEl.querySelector(`[data-id="${msg.id}"]`)) return;
+      addMessage(msg);
+    };
+
+    /* ---------- Attempt to call your firebase init hook if present ---------- */
+    // If your app.js defines initFirebaseListeners(callback) we call it and give it a function to call for incoming messages:
+    if(window.initFirebaseListeners && typeof window.initFirebaseListeners === 'function'){
+      try {
+        // your firebase code should call the supplied callback with message objects
+        window.initFirebaseListeners(window.receiveMessageFromRemote);
+      } catch(e){
+        console.warn('initFirebaseListeners failed', e);
+      }
+    }
+
+    /* ---------- Small demo messages so UI doesn't look empty ---------- */
+    (function seedDemo(){
+      const existing = messagesEl.children.length;
+      if(existing) return;
+      const demo = [
+        { id: 'd1', username:'Tectone', text:"Welcome to the Dome. Keep it bald and kind.", ts: Date.now() - 1000*60*40 },
+        { id: 'd2', username:'BaldZakk', text:"hey! testing the new UI — looks slick.", ts: Date.now() - 1000*60*30 },
+      ];
+      demo.forEach(m=>addMessage(m));
+    })();
+
+    /* ---------- small accessibility focus improvements ---------- */
+    window.addEventListener('load', ()=> msgInput.focus());
+  </script>
 </body>
 </html>
