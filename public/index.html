@@ -5,20 +5,51 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>The Bald Chat — Inside The Dome</title>
 
-  <!-- Firebase compat libraries (must load before app.js) -->
+  <!-- Firebase libs -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
 
-  <!-- load your app script AFTER firebase libs; defer ensures DOM is parsed first -->
+  <!-- Your JS -->
   <script src="app.js" defer></script>
 
   <style>
-    /* (your whole CSS here exactly as in your file) */
+    body { background:#0f1724; color:white; font-family:sans-serif; margin:0; padding:0; }
+    #chat { display:flex; flex-direction:column; height:100vh; }
+    #header { background:#1e293b; padding:10px; display:flex; align-items:center; gap:10px; }
+    #connDot { width:10px; height:10px; border-radius:50%; background:#555; }
+    #connDot.connected { background:#4ade80; }
+    #messages { flex:1; overflow-y:auto; padding:10px; }
+    .msg { display:flex; align-items:flex-start; margin:5px 0; }
+    .msg.me { justify-content:flex-end; }
+    .avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:12px; margin-right:8px; }
+    .bubble { background:#334155; padding:8px 10px; border-radius:8px; max-width:70%; }
+    .meta { font-size:10px; color:#94a3b8; display:flex; justify-content:space-between; }
+    .text { margin-top:2px; }
+    #inputBar { display:flex; padding:10px; background:#1e293b; gap:6px; }
+    #usernameInput, #messageInput { flex:1; padding:6px; border:none; border-radius:4px; }
+    #sendMessage { padding:6px 12px; border:none; border-radius:4px; background:#3b82f6; color:white; cursor:pointer; }
+    #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#3b82f6; color:white; padding:8px 14px; border-radius:6px; opacity:0; transition:opacity 0.3s; }
+    #toast.show { opacity:1; }
   </style>
 </head>
 <body>
-  <!-- (all your HTML UI markup here exactly as in your file) -->
+  <div id="chat">
+    <div id="header">
+      <div id="connDot"></div>
+      <span id="statusText">Disconnected</span>
+      <span>Messages: <span id="messageCount">0</span></span>
+      <span>User: <span id="uidShort">—</span></span>
+    </div>
+
+    <div id="messages"></div>
+
+    <div id="inputBar">
+      <input id="usernameInput" type="text" placeholder="Enter username" />
+      <input id="messageInput" type="text" placeholder="Type a message..." />
+      <button id="sendMessage">Send</button>
+    </div>
+  </div>
 
   <div id="toast" role="status" aria-live="polite">Saved</div>
 </body>
