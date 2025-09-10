@@ -6,23 +6,29 @@
   <title>The Bald Chat — Inside The Dome</title>
 
   <style>
-    /* PAGE LAYOUT */
+    /* PAGE VARIABLES */
     :root{
-      --bg: #0b1220;
-      --panel: #0f1724;
+      --bg-0: #071124;
+      --bg-1: #081423;
+      --panel-0: rgba(255,255,255,0.02);
+      --panel-1: rgba(255,255,255,0.01);
       --muted: #94a3b8;
       --accent: #3b82f6;
       --bubble: #111827;
       --bubble-alt: #1f2937;
-      --me: #05386B;
       --success: #10b981;
+      --radius: 12px;
+      --card-pad: 16px;
+      --max-width: 940px;
+      --shadow-strong: 0 8px 30px rgba(2,6,23,0.6);
+      --shadow-soft: 0 4px 10px rgba(2,6,23,0.45);
     }
 
-    
-    html,body{height:100%;margin:0;}
+    /* GLOBAL */
+    html,body { height:100%; margin:0; }
     body{
-      background: linear-gradient(180deg, #071124 0%, #081423 60%);
-      font-family: Inter, "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 60%);
+      font-family: Inter, "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial, "Courier New", monospace;
       color: #e6eef8;
       display:flex;
       align-items:center;
@@ -31,26 +37,31 @@
       box-sizing:border-box;
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
+      font-size:14px;
     }
 
     .app {
       width:100%;
-      max-width:940px;
+      max-width: var(--max-width);
       display:grid;
       grid-template-columns: 1fr 360px;
       gap:28px;
       align-items:start;
     }
 
-    /* LEFT: Chat area */
+    /* PANEL BASE */
     .panel {
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      background: linear-gradient(180deg, var(--panel-0), var(--panel-1));
       border-radius:14px;
       padding:18px;
-      box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+      box-shadow: var(--shadow-strong);
       border: 1px solid rgba(255,255,255,0.03);
     }
 
+    .panel--compact { padding:12px; }
+    .panel--center { text-align:center; }
+
+    /* HEADER */
     header.title {
       display:flex;
       align-items:center;
@@ -69,25 +80,28 @@
       color:white;
       font-size:18px;
       box-shadow: 0 4px 18px rgba(20,20,40,0.45);
+      flex: 0 0 46px;
     }
     header.title h1{
       font-size:1.25rem;
       margin:0;
       letter-spacing: -0.2px;
+      line-height:1;
     }
     header.title p { margin:0; color:var(--muted); font-size:0.9rem; }
 
-   #digitalClock {
+    /* DIGITAL CLOCK */
+    #digitalClock {
       font-size: 2.2rem;
       font-weight: 700;
       letter-spacing: 1.5px;
       color: var(--accent);
       text-shadow: 0 0 8px rgba(59,130,246,0.6);
       font-family: "Courier New", monospace;
+      margin: 8px 0 0;
     }
 
-
-    /* MESSAGES CONTAINER */
+    /* MESSAGES */
     #messages {
       width:100%;
       height:560px;
@@ -102,7 +116,7 @@
       border: 1px solid rgba(255,255,255,0.02);
     }
 
-    /* Generic styling for whatever your JS appends: */
+    /* generic message block */
     #messages > * {
       max-width: 78%;
       padding:10px 14px;
@@ -110,12 +124,10 @@
       background: var(--bubble-alt);
       color: #e6eef8;
       line-height:1.35;
-      box-shadow: 0 4px 10px rgba(2,6,23,0.45);
+      box-shadow: var(--shadow-soft);
       word-break:break-word;
       font-size:0.95rem;
     }
-
-    /* subtle username line above message if your message nodes include that element */
     #messages .username {
       display:block;
       color:var(--muted);
@@ -123,8 +135,6 @@
       font-size:0.82rem;
       margin-bottom:6px;
     }
-
-    /* timestamp if present */
     #messages .meta {
       display:block;
       color:var(--muted);
@@ -132,16 +142,12 @@
       margin-top:6px;
       opacity:0.9;
     }
-
-    /* messages from "me" (if your JS adds class "mine" to an element) */
     #messages > .mine {
       margin-left:auto;
       background: linear-gradient(180deg, rgba(59,130,246,0.12), rgba(59,130,246,0.06));
       border: 1px solid rgba(59,130,246,0.12);
       color: #eaf2ff;
     }
-
-    /* small system / notice messages */
     #messages > .system {
       margin: 0 auto;
       background: transparent;
@@ -152,14 +158,13 @@
       font-size:0.85rem;
     }
 
-    /* RIGHT: Controls / user panel */
+    /* SIDE */
     .side {
       display:flex;
       flex-direction:column;
       gap:14px;
       align-items:stretch;
     }
-
     label.small {
       font-size:0.85rem;
       color:var(--muted);
@@ -167,7 +172,7 @@
       display:block;
     }
 
-    #usernameInput{
+    input[type="text"] {
       width:100%;
       padding:12px 14px;
       border-radius:10px;
@@ -178,26 +183,17 @@
       box-sizing:border-box;
       font-size:1rem;
     }
-    #usernameInput::placeholder{ color:var(--muted); }
+    input::placeholder { color:var(--muted); }
 
     .input-row {
       display:flex;
       gap:10px;
       align-items:center;
+      margin-top:14px;
     }
-    #messageInput{
-      flex:1;
-      padding:12px 14px;
-      border-radius:10px;
-      border: 1px solid rgba(255,255,255,0.03);
-      background: rgba(255,255,255,0.02);
-      color:inherit;
-      outline:none;
-      font-size:1rem;
-    }
-    #messageInput::placeholder{ color:var(--muted); }
+    #messageInput { flex:1; }
 
-    #sendMessage{
+    button.btn {
       padding:11px 16px;
       border-radius:10px;
       border:none;
@@ -208,7 +204,19 @@
       transition: transform 0.08s ease, box-shadow 0.12s;
       box-shadow: 0 6px 18px rgba(37,99,235,0.12);
     }
-    #sendMessage:active{ transform: translateY(1px) scale(0.998); }
+    button.btn:active{ transform: translateY(1px) scale(0.998); }
+
+    /* focus styles for accessibility (non-invasive) */
+    input[type="text"]:focus,
+    button.btn:focus {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.12);
+      border-color: rgba(59,130,246,0.18);
+    }
+
+    /* small utility classes that replaced inline styles */
+    .muted-note { margin:10px 0 0; color:var(--muted); font-size:0.9rem; }
+    .small-strong { font-size:0.95rem; display:block; }
 
     /* Toast */
     #toast{
@@ -238,55 +246,51 @@
       header.title h1{ font-size:1.05rem;}
     }
   </style>
-  
 </head>
 
 <body>
   <div class="app">
     <!-- CHAT PANEL -->
-    <div class="panel" style="grid-column:1">
-      <header class="title">
-        <div class="logo">BALD</div>
+    <main class="panel" aria-labelledby="chat-title">
+      <header class="title" id="chat-title">
+        <div class="logo" aria-hidden="true">BALD</div>
         <div>
           <h1>Inside The Dome</h1>
           <p>Private chat • Owned by Doug</p>
         </div>
       </header>
 
-      <div id="messages" aria-live="polite" aria-atomic="false">
-        <!-- any elements your app.js appends (div/p/li) will be styled automatically -->
+      <div id="messages" role="log" aria-relevant="additions" aria-live="polite" aria-atomic="false">
         <div class="system">Top of chat.</div>
       </div>
 
-      <div style="margin-top:14px; display:flex; gap:12px; align-items:center;">
+      <div class="input-row" role="form" aria-label="Send message">
         <input id="messageInput" type="text" placeholder="Type your message..." aria-label="Message input">
-        <button id="sendMessage" type="button" aria-label="Send message">Send</button>
+        <button id="sendMessage" class="btn" type="button" aria-label="Send message">Send</button>
       </div>
-    </div>
+    </main>
 
     <!-- SIDE PANEL -->
-    <aside class="side">
-      <div class="panel" style="padding:16px;">
+    <aside class="side" aria-label="User controls">
+      <div class="panel panel--compact">
         <label class="small" for="usernameInput">Username</label>
         <input id="usernameInput" type="text" placeholder="Enter your username..." aria-label="Username">
-        <p style="margin:10px 0 0; color:var(--muted); font-size:0.9rem;">
-          Tip: set a short username so messages look nicer.
-        </p>
+        <p class="muted-note">Tip: set a short username so messages look nicer.</p>
       </div>
 
-      <div class="panel" style="padding:12px; display:flex; flex-direction:column; gap:8px;">
-        <strong style="font-size:0.95rem">Quick actions</strong>
-        <div style="color:var(--muted); font-size:0.9rem;">• Press Enter to send </div>
+      <div class="panel panel--compact">
+        <strong class="small-strong">Quick actions</strong>
+        <div class="muted-note">• Press Enter to send</div>
       </div>
-        <div class="panel" style="padding:16px; text-align:center;">
-  <div id="digitalClock"></div>
-</div>
 
+      <div class="panel panel--compact panel--center">
+        <div id="digitalClock" aria-hidden="true"></div>
+      </div>
     </aside>
   </div>
 
   <!-- Toast -->
-  <div id="toast">Username saved!</div>
+  <div id="toast" role="status" aria-live="polite">Username saved!</div>
 
   <!-- firebase + your existing app logic (unchanged) -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
@@ -294,20 +298,28 @@
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
 
   <script src="app.js"></script>
+
+  <!-- small, robust clock helper (unchanged) -->
   <script>
-  function updateClock() {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString([], { hour12: false });
-    document.getElementById("digitalClock").textContent = timeString;
+    (function startClock() {
+      const el = document.getElementById('digitalClock');
+      if (!el) return;
 
-    // Calculate ms until the next full second
-    const msUntilNext = 1000 - now.getMilliseconds();
-    setTimeout(updateClock, msUntilNext);
-  }
+      // Use an Intl formatter for consistent zero-padding across locales
+      const fmt = new Intl.DateTimeFormat([], {
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      });
 
-  updateClock(); // run immediately and self-schedule
-</script>
-
-
+      function tick(){
+        const now = new Date();
+        // Intl may add directionality; using formatToParts gives guaranteed order but simpler format works here
+        el.textContent = fmt.format(now);
+        // schedule at next full second
+        const delay = 1000 - now.getMilliseconds();
+        setTimeout(tick, delay);
+      }
+      tick();
+    })();
+  </script>
 </body>
 </html>
