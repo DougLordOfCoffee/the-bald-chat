@@ -1,5 +1,4 @@
 // --- Firebase Configuration ---
-// Note: This is now a standard practice to keep the config object separate.
 const firebaseConfig = {
   apiKey: "AIzaSyAANuaXF-zSqAs9kzIBnW3ROLDwxGXA1p8",
   authDomain: "the-bald-chat.firebaseapp.com",
@@ -10,20 +9,14 @@ const firebaseConfig = {
   databaseURL: "https://the-bald-chat-default-rtdb.firebaseio.com"
 };
 
-// --- Import the necessary functions from the modular SDKs ---
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js';
-import { getDatabase, ref, push, onChildAdded, onChildRemoved, serverTimestamp, remove } from 'https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js';
-
 // --- Global Firebase and DOM References ---
 let database;
 let usernameInput, messageInput, sendMessageBtn, messagesDiv;
-let auth; // If you plan to add authentication later, you'll need this.
 
 // --- Core Functions ---
 function initFirebase() {
-  // Initialize the app and get service instances
-  const app = initializeApp(firebaseConfig);
-  database = getDatabase(app);
+  firebase.initializeApp(firebaseConfig);
+  database = firebase.database();
 }
 
 function getDOMElements() {
@@ -53,57 +46,52 @@ function setupUsernameMemory() {
   }
 }
 
+
 // --- Write a new message ---
 function writeNewMessage(username, text) {
-  // Use `ref` and `push` functions from the modular SDK
-  const messagesRef = ref(database, 'messages');
-  push(messagesRef, {
+  const newMessageRef = database.ref('messages').push();
+  newMessageRef.set({
     username: username,
     text: text,
-    timestamp: serverTimestamp() // Use modular serverTimestamp
+    timestamp: firebase.database.ServerValue.TIMESTAMP
   });
 }
 
 // --- Display a message ---
 function displayMessage(message) {
   const messageElement = document.createElement('div');
-  messageElement.id = message.id; // Correctly set the ID
-  messageElement.classList.add(message.isMine ? 'mine' : 'other'); // Add a class for styling
-  
-  // Create a proper message structure from your HTML
-  const usernameSpan = document.createElement('span');
-  usernameSpan.className = 'username';
-  usernameSpan.textContent = message.username;
+  messageElement.id = message.id;
+  messageElement.style.display = "flex";
+  messageElement.style.justifyContent = "space-between";
+  messageElement.style.alignItems = "center";
+  messageElement.style.marginBottom = "5px";
 
-  const textSpan = document.createElement('span');
-  textSpan.textContent = message.text;
-
-  const metaSpan = document.createElement('span');
-  metaSpan.className = 'meta';
-  
-  // Check if the timestamp is a number before creating a Date object
-  if (typeof message.timestamp === 'number') {
+  const textElement = document.createElement('span');
+  if (message.timestamp) {
     const date = new Date(message.timestamp);
-    metaSpan.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    textElement.textContent = `[${timeString}] (${message.username}): ${message.text}`;
+    textElement.title = date.toLocaleString();
   } else {
-    // If timestamp is not available, just use a default
-    metaSpan.textContent = '';
+    textElement.textContent = `(${message.username}): ${message.text}`;
   }
 
-  // Combine elements
-  messageElement.appendChild(usernameSpan);
-  messageElement.appendChild(textSpan);
-  messageElement.appendChild(metaSpan);
+  const deleteBtn = document.createElement('button');
+  deleteBtn.textContent = "❌";
+  deleteBtn.style.marginLeft = "10px";
+  deleteBtn.style.cursor = "pointer";
+  deleteBtn.style.border = "none";
+  deleteBtn.style.background = "transparent";
+  deleteBtn.style.fontSize = "14px";
 
-  // Your original code had a delete button, but it was being applied to every message,
-  // making the design complex. Let's keep the design cleaner as per your HTML.
-  
-  // To handle the `mine` class, we need to know the current user.
-  // We'll set the class for messages that match the saved username.
-  if (message.username === usernameInput.value) {
-    messageElement.classList.add('mine');
-  }
+  deleteBtn.addEventListener('click', () => {
+    if (confirm("Delete this message?")) {
+      database.ref('messages').child(message.id).remove();
+    }
+  });
 
+  messageElement.appendChild(textElement);
+  messageElement.appendChild(deleteBtn);
   messagesDiv.appendChild(messageElement);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
@@ -126,17 +114,13 @@ function setupEventListeners() {
 
 // --- Listen for messages ---
 function listenForMessages() {
-  const messagesRef = ref(database, 'messages');
-
-  // Listen for new messages added
-  onChildAdded(messagesRef, (snapshot) => {
+  database.ref('messages').on('child_added', (snapshot) => {
     const message = snapshot.val();
     message.id = snapshot.key;
     displayMessage(message);
   });
 
-  // Listen for messages removed
-  onChildRemoved(messagesRef, (snapshot) => {
+  database.ref('messages').on('child_removed', (snapshot) => {
     const removedId = snapshot.key;
     const element = document.getElementById(removedId);
     if (element) element.remove();
@@ -146,13 +130,11 @@ function listenForMessages() {
 // --- Toast helper ---
 function showToast(message) {
   const toast = document.getElementById('toast');
-  if (toast) { // Added a check to ensure toast exists
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-      toast.classList.remove('show');
-    }, 2000);
-  }
+  toast.textContent = message;
+  toast.style.opacity = 1;
+  setTimeout(() => {
+    toast.style.opacity = 0;
+  }, 2000);
 }
 
 // --- Main entry point ---
