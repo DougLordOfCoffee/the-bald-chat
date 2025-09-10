@@ -299,10 +299,15 @@
     const now = new Date();
     const timeString = now.toLocaleTimeString([], { hour12: false });
     document.getElementById("digitalClock").textContent = timeString;
+
+    // Calculate ms until the next full second
+    const msUntilNext = 1000 - now.getMilliseconds();
+    setTimeout(updateClock, msUntilNext);
   }
-  setInterval(updateClock, 1000);
-  updateClock(); // run once immediately
+
+  updateClock(); // run immediately and self-schedule
 </script>
+
 
 </body>
 </html>
