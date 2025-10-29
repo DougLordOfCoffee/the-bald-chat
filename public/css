@@ -1,0 +1,5 @@
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 28px; /* Adjust this value for more or less spacing */
+}
