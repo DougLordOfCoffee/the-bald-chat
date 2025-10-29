@@ -25,6 +25,13 @@ function getDOMElements() {
   sendMessageBtn = document.getElementById('sendMessage');
   messagesDiv = document.getElementById('messages');
 }
+// Set App Height
+function setAppHeight() {
+  document.querySelector('.app').style.height = `${window.innerHeight}px`;
+}
+window.addEventListener('resize', setAppHeight);
+window.addEventListener('orientationchange', setAppHeight);
+setAppHeight(); 
 
 // --- Username memory with toast ---
 function setupUsernameMemory() {
