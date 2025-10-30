@@ -3,3 +3,7 @@
   flex-direction: column;
   gap: 28px; /* Adjust this value for more or less spacing */
 }
+.small {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
