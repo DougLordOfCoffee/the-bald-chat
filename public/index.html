@@ -24,6 +24,16 @@ html, body {
   height: 100%;
   margin: 0;
 }
+body::before {
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at top left, rgba(155, 92, 246, 0.18), transparent 60%),
+    radial-gradient(circle at bottom right, rgba(0, 224, 255, 0.12), transparent 60%);
+}
+
 body {
   background: radial-gradient(circle at top left, #0c0720 0%, #02040c 70%);
   background-attachment: fixed;
@@ -147,6 +157,10 @@ header.title p {
   text-align: center;
   background: transparent;
 }
+#messages {
+  overflow-y: overlay;
+}
+
 
 /* Input area */
 #messageInput,
@@ -189,6 +203,11 @@ header.title p {
 #sendMessage:active {
   transform: scale(0.98);
 }
+#sendMessage:focus-visible {
+  outline: 2px solid var(--accent2);
+  outline-offset: 2px;
+}
+
 
 /* Toast */
 #toast {
