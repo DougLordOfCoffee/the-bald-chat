@@ -293,6 +293,7 @@ header.title p {
       </div>
         <div class="panel" style="padding:16px; text-align:center;">
   <div id="digitalClock"></div>
+  <button id="themeToggle" style="margin-top:10px;">Toggle Theme</button>
 </div>
 
     </aside>
@@ -320,6 +321,21 @@ header.title p {
 
   updateClock(); // run immediately and self-schedule
 </script>
+<script>
+  const themeBtn = document.getElementById("themeToggle");
+  const body = document.body;
+
+  // Load saved theme
+  if (localStorage.getItem("theme") === "light") {
+    body.classList.add("light");
+  }
+
+  themeBtn.addEventListener("click", () => {
+    body.classList.toggle("light");
+    localStorage.setItem("theme", body.classList.contains("light") ? "light" : "dark");
+  });
+</script>
+
 
 
 </body>
