@@ -32,3 +32,7 @@ body.light {
   --success: #00c496;
   color: #10121a;
 }
+body {
+  background: var(--bg);
+  /* keep the rest exactly the same */
+}
