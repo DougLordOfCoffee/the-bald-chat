@@ -19,3 +19,16 @@
   height: 100%;
   object-fit: cover;
 }
+/* LIGHT THEME */
+body.light {
+  --bg: #f5f6fa;
+  --panel: rgba(255,255,255,0.65);
+  --muted: #5a6275;
+  --accent: #7d4df0;
+  --accent2: #00a7d9;
+  --bubble: rgba(225, 230, 255, 0.7);
+  --bubble-alt: rgba(200, 210, 255, 0.8);
+  --me: rgba(125, 77, 240, 0.18);
+  --success: #00c496;
+  color: #10121a;
+}
