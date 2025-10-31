@@ -7,6 +7,38 @@
   font-size: 0.85rem;
   color: var(--muted);
 }
+
+#themeToggle {
+  position: relative;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: 0 0 12px rgba(155, 92, 246, 0.4),
+              0 0 25px rgba(0, 224, 255, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+#themeToggle:hover {
+  box-shadow: 0 0 20px rgba(155, 92, 246, 0.6),
+              0 0 35px rgba(0, 224, 255, 0.6);
+}
+
+#themeToggle:active {
+  transform: scale(0.95);
+}
+
+/* Cyber Glow When Light Mode is Active */
+body.light #themeToggle {
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  box-shadow: 0 0 12px rgba(0, 167, 217, 0.45),
+              0 0 25px rgba(125, 77, 240, 0.45);
+}
+
 .logo {
   width: 46px;
   height: 46px;
