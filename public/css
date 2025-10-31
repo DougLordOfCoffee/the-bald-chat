@@ -19,6 +19,19 @@
   height: 100%;
   object-fit: cover;
 }
+/* DARK THEME (default) */
+:root {
+  --bg: radial-gradient(circle at top left, #0c0720 0%, #02040c 70%);
+  --panel: rgba(20, 25, 40, 0.7);
+  --muted: #7a88a5;
+  --accent: #9b5cf6;
+  --accent2: #00e0ff;
+  --bubble: rgba(40, 45, 70, 0.4);
+  --bubble-alt: rgba(80, 90, 130, 0.4);
+  --me: rgba(155, 92, 246, 0.25);
+  --success: #00ffc6;
+}
+
 /* LIGHT THEME */
 body.light {
   --bg: #f5f6fa;
@@ -30,12 +43,12 @@ body.light {
   --bubble-alt: rgba(200, 210, 255, 0.8);
   --me: rgba(125, 77, 240, 0.18);
   --success: #00c496;
-  color: #10121a;
 }
+
 body {
   background: var(--bg);
-  /* keep the rest exactly the same */
 }
+
 * {
   transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
