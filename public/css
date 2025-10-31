@@ -1,7 +1,7 @@
 .side {
   display: flex;
   flex-direction: column;
-  gap: 100px; /* Adjust this value for more or less spacing */
+  gap: 0px; /* Adjust this value for more or less spacing */
 }
 .small {
   font-size: 0.85rem;
