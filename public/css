@@ -1,3 +1,8 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+
 :root {
   --bg: #060710;
   --panel: rgba(20, 25, 40, 0.9);
@@ -38,23 +43,23 @@ body {
   box-sizing: border-box;
 }
 
-/* App grid */
+/* .app grid*/
 .app {
-  width: 100%;
-  max-width: 1200px;
+  min-height: calc(100vh - 56px); /* or keep flexible depending on header */
   display: grid;
   grid-template-columns: 1fr 340px;
   gap: 28px;
-  align-items: stretch;
-  min-height: 0;
 }
 
-/* Panels */
-.panel {
-  background: var(--panel);
-  padding: 14px;
-  border-radius: 10px;
+.panel { display: flex; flex-direction: column; }
+
+/* panel */
+#messages {
+  flex: 1 1 auto;
+  min-height: 320px; /* fallback */
+  height: auto;      /* remove fixed height if you want full-flex behavior */
 }
+
 
 /* Header */
 header.title {
@@ -106,7 +111,7 @@ header.title p {
 }
 
 /* Each message container */
-#messages > div {
+#messages .message {
   max-width: 78%;
   padding: 10px 14px;
   border-radius: 12px;
@@ -117,9 +122,10 @@ header.title p {
   font-size: 0.95rem;
   transition: background 0.2s ease;
 }
-#messages > div:hover {
-  background: var(--bubble-alt);
-}
+:focus-visible { outline: 3px solid rgba(155,92,246,0.25); outline-offset: 2px; }
+
+/* better button keyboard focus */
+button:focus-visible { box-shadow: 0 0 0 4px rgba(155,92,246,0.12); }
 
 #messages .username {
   display: block;
@@ -136,23 +142,8 @@ header.title p {
   opacity: 0.9;
 }
 
-/* mine */
-#messages > .mine {
-  margin-left: auto;
-  background: var(--me);
-  border: 1px solid var(--accent);
-  color: #f3eaff;
-  box-shadow: 0 0 12px rgba(155, 92, 246, 0.25);
-}
-
-/* system line */
-#messages .system {
-  margin: 0 auto;
-  color: var(--muted);
-  text-align: center;
-  background: transparent;
-  padding: 6px 0;
-}
+#messages .message.mine { margin-left: auto; /* etc */ }
+#messages .system { text-align:center; background: transparent; }
 
 /* Inputs */
 #messageInput,
@@ -216,11 +207,22 @@ header.title p {
   header.title h1 { font-size: 1.05rem; }
 }
 
-/* Light theme override */
 .light {
   --bg: #ece9e4;
-  --text: black;
+  --text: #0b0b0b;
   --panel: #ffffff;
-  --bubble: #dfdcdc;
-  --bubble-alt: rgba(0,0,0,0.08);
+  --bubble: #f3f2f2;
+  --bubble-alt: rgba(0,0,0,0.06);
+  --accent: #6b3bd6;
+  --accent2: #00a9bf;
+  --success: #00b285;
+  --muted: #6b7280;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+  .logo img, #messages .message { box-shadow: none; backdrop-filter: none; }
+}
+@media (prefers-color-scheme: light) {
+  :root { /* light variable defaults */ }
 }
