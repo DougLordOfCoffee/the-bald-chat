@@ -21,10 +21,6 @@
   --success: #00ffc6;
 }
 
-html, body {
-  height: 100%;
-  margin: 0;
-}
 body::before {
   content:"";
   position:fixed;
@@ -35,26 +31,36 @@ body::before {
     radial-gradient(circle at bottom right, rgba(0, 224, 255, 0.12), transparent 60%);
 }
 
+/* page container: let it fill the viewport and allow children to stretch */
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+/* Make page fill viewport and allow the app to stretch vertically */
 body {
   background: var(--bg);
-  background-attachment: fixed;
+  color: var(--text, #d9e1ff);
   font-family: "Rajdhani", "Segoe UI", sans-serif;
-  color: #d9e1ff;
+  min-height: 100vh;            /* fill the screen */
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;         /* IMPORTANT: allow .app to stretch vertically */
+  justify-content: center;      /* keep centered horizontally */
   padding: 28px;
   box-sizing: border-box;
 }
 
+/* App grid: chat (fluid) + side (fixed) */
 .app {
   width: 100%;
-  max-width: 940px;
+  max-width: 1200px;            /* your max width */
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 340px; /* chat fluid, side fixed */
   gap: 28px;
-  align-items: start;
+  align-items: stretch;         /* allow children to stretch vertically */
+  min-height: 0;                /* critical to allow children to use min-height:0 */
 }
+
 
 /* Panels */
 .panel {
