@@ -39,6 +39,15 @@ body.light #themeToggle {
               0 0 25px rgba(125, 77, 240, 0.45);
 }
 
+#themeToggle::before {
+  content: "🌙";
+  font-size: 1.1rem;
+}
+
+body.light #themeToggle::before {
+  content: "☀️";
+}
+
 .logo {
   width: 46px;
   height: 46px;
