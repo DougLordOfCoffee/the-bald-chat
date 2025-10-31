@@ -1,55 +1,226 @@
 :root {
-  --bg: #0d0d0d;
-  --text: white;
-  --panel: #111111;
-  --bubble: #1a1a1a;
-  --bubble-alt: rgba(255, 255, 255, 0.12);
+  --bg: #060710;
+  --panel: rgba(20, 25, 40, 0.9);
+  --muted: #7a88a5;
+  --accent: #9b5cf6;
+  --accent2: #00e0ff;
+  --bubble: rgba(40, 45, 70, 0.4);
+  --bubble-alt: rgba(80, 90, 130, 0.4);
+  --me: rgba(155, 92, 246, 0.25);
+  --success: #00ffc6;
+  --text: #d9e1ff;
 }
 
-.light {
-  --bg: #ece9e4;
-  --text: black;
-  --panel: #ffffff;
-  --bubble: #dfdcdc;
-  --bubble-alt: rgba(0, 0, 0, 0.12);
+body::before {
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at top left, rgba(155, 92, 246, 0.18), transparent 60%),
+    radial-gradient(circle at bottom right, rgba(0, 224, 255, 0.12), transparent 60%);
 }
 
-/* Use the variables */
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
+  font-family: "Rajdhani", "Segoe UI", sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 28px;
+  box-sizing: border-box;
+}
+
+/* App grid */
+.app {
+  width: 100%;
+  max-width: 1200px;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 28px;
+  align-items: stretch;
+  min-height: 0;
 }
 
 /* Panels */
 .panel {
   background: var(--panel);
+  padding: 14px;
+  border-radius: 10px;
 }
 
-/* Messages + Inputs need to use variables */
+/* Header */
+header.title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  background: transparent;
+  padding: 0;
+}
+.logo img {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+header.title h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+header.title p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Clock */
+#digitalClock {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent2);
+  text-shadow: 0 0 8px rgba(0, 224, 255, 0.5);
+  font-family: "Courier New", monospace;
+}
+
+/* Messages */
 #messages {
-  background: var(--bubble);
-  border: 1px solid var(--bubble-alt);
-}
-
-#messages > * {
-  background: var(--bubble);
-}
-
-#messageInput,
-#usernameInput {
-  background: var(--bubble);
-  color: var(--text);
-  border: 1px solid var(--bubble-alt);
-}
-
-/* Fix side panel spacing */
-.side {
+  width: 100%;
+  height: 560px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 10px;
+  padding: 14px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: inset 0 0 10px rgba(155, 92, 246, 0.15);
 }
 
-/* Make chat area stretch properly */
-.panel:first-of-type {
+/* Each message container */
+#messages > div {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--bubble);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 10px rgba(155, 92, 246, 0.12);
+  word-break: break-word;
+  font-size: 0.95rem;
+  transition: background 0.2s ease;
+}
+#messages > div:hover {
+  background: var(--bubble-alt);
+}
+
+#messages .username {
+  display: block;
+  color: var(--accent2);
+  font-weight: 600;
+  font-size: 0.82rem;
+  margin-bottom: 4px;
+}
+#messages .meta {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-top: 6px;
+  opacity: 0.9;
+}
+
+/* mine */
+#messages > .mine {
+  margin-left: auto;
+  background: var(--me);
+  border: 1px solid var(--accent);
+  color: #f3eaff;
+  box-shadow: 0 0 12px rgba(155, 92, 246, 0.25);
+}
+
+/* system line */
+#messages .system {
+  margin: 0 auto;
+  color: var(--muted);
+  text-align: center;
+  background: transparent;
+  padding: 6px 0;
+}
+
+/* Inputs */
+#messageInput,
+#usernameInput {
   width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: inherit;
+  outline: none;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+#messageInput:focus,
+#usernameInput:focus {
+  border-color: var(--accent2);
+  box-shadow: 0 0 8px rgba(0, 224, 255, 0.25);
+}
+
+/* Buttons */
+#sendMessage {
+  padding: 11px 16px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(155, 92, 246, 0.3);
+}
+#sendMessage:active { transform: scale(0.98); }
+
+/* Toast */
+#toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  background: var(--success);
+  color: black;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 255, 198, 0.3);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 220ms ease, transform 220ms ease;
+  z-index: 9999;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; gap: 16px; }
+  #messages { height: 460px; }
+}
+@media (max-width: 420px) {
+  #messages { height: 400px; }
+  header.title h1 { font-size: 1.05rem; }
+}
+
+/* Light theme override */
+.light {
+  --bg: #ece9e4;
+  --text: black;
+  --panel: #ffffff;
+  --bubble: #dfdcdc;
+  --bubble-alt: rgba(0,0,0,0.08);
 }
