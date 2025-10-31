@@ -1,14 +1,31 @@
-/* PAGE LAYOUT FIXES */
-.side {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+:root {
+  --bg: #0d0d0d;
+  --text: white;
+  --panel: #111111;
+  --bubble: #1a1a1a;
+  --bubble-alt: rgba(255, 255, 255, 0.12);
 }
 
+.light {
+  --bg: #ece9e4;
+  --text: black;
+  --panel: #ffffff;
+  --bubble: #dfdcdc;
+  --bubble-alt: rgba(0, 0, 0, 0.12);
+}
+
+/* Use the variables */
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Panels */
 .panel {
   background: var(--panel);
 }
 
+/* Messages + Inputs need to use variables */
 #messages {
   background: var(--bubble);
   border: 1px solid var(--bubble-alt);
@@ -21,99 +38,18 @@
 #messageInput,
 #usernameInput {
   background: var(--bubble);
+  color: var(--text);
+  border: 1px solid var(--bubble-alt);
 }
 
+/* Fix side panel spacing */
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Make chat area stretch properly */
 .panel:first-of-type {
   width: 100%;
-}
-
-.small {
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-#themeToggle {
-  position: relative;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: white;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  box-shadow: 0 0 12px rgba(155, 92, 246, 0.4),
-              0 0 25px rgba(0, 224, 255, 0.35);
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
-}
-
-#themeToggle:hover {
-  box-shadow: 0 0 20px rgba(155, 92, 246, 0.6),
-              0 0 35px rgba(0, 224, 255, 0.6);
-}
-
-#themeToggle:active {
-  transform: scale(0.95);
-}
-
-/* Cyber Glow When Light Mode is Active */
-body.light #themeToggle {
-  background: linear-gradient(135deg, var(--accent2), var(--accent));
-  box-shadow: 0 0 12px rgba(0, 167, 217, 0.45),
-              0 0 25px rgba(125, 77, 240, 0.45);
-}
-
-#themeToggle::before {
-  content: "🌙";
-  font-size: 1.1rem;
-}
-
-body.light #themeToggle::before {
-  content: "☀️";
-}
-
-.logo {
-  width: 46px;
-  height: 46px;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-/* Dark Mode (default) */
-:root {
-  --bg: radial-gradient(circle at top left, #0c0720 0%, #02040c 70%);
-  --panel: rgba(20, 25, 40, 0.7);
-  --muted: #7a88a5;
-  --accent: #9b5cf6;
-  --accent2: #00e0ff;
-  --bubble: rgba(40, 45, 70, 0.4);
-  --bubble-alt: rgba(80, 90, 130, 0.4);
-  --me: rgba(155, 92, 246, 0.25);
-  --success: #00ffc6;
-}
-
-/* Light Mode */
-body.light {
-  --bg: #f5f6fa;
-  --panel: rgba(255,255,255,0.65);
-  --muted: #5a6275;
-  --accent: #7d4df0;
-  --accent2: #00a7d9;
-  --bubble: rgba(225, 230, 255, 0.7);
-  --bubble-alt: rgba(200, 210, 255, 0.8);
-  --me: rgba(125, 77, 240, 0.18);
-  --success: #00c496;
-}
-
-body {
-  background: var(--bg);
-}
-
-* {
-  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
