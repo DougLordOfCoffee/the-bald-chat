@@ -19,7 +19,7 @@
   height: 100%;
   object-fit: cover;
 }
-/* DARK THEME (default) */
+/* Dark Mode (default) */
 :root {
   --bg: radial-gradient(circle at top left, #0c0720 0%, #02040c 70%);
   --panel: rgba(20, 25, 40, 0.7);
@@ -32,7 +32,7 @@
   --success: #00ffc6;
 }
 
-/* LIGHT THEME */
+/* Light Mode */
 body.light {
   --bg: #f5f6fa;
   --panel: rgba(255,255,255,0.65);
