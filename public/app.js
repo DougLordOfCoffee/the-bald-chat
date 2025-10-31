@@ -9,40 +9,69 @@ const firebaseConfig = {
   databaseURL: "https://the-bald-chat-default-rtdb.firebaseio.com"
 };
 
-// --- Global Firebase and DOM References ---
+// --- Global refs ---
 let database;
-let usernameInput, messageInput, sendMessageBtn, messagesDiv;
+let usernameInput, messageInput, sendMessageBtn, messagesDiv, themeToggleBtn;
 let localUsername = null;
+let toastTimer = null;
 
-// --- Core Functions ---
+// --- Helpers ---
+function sanitizeId(key) {
+  // make a safe DOM id, prefix with "msg_" so it never starts with a digit
+  return 'msg_' + String(key).replace(/[^a-zA-Z0-9\-_:.]/g, '_');
+}
+
+function safeText(t) {
+  return String(t == null ? '' : t);
+}
+
+function isFirebaseCompatLoaded() {
+  return typeof window.firebase === 'object' && typeof window.firebase.initializeApp === 'function';
+}
+
+// --- Firebase init ---
 function initFirebase() {
-  // compat init
-  if (!firebase || typeof firebase.initializeApp !== 'function') {
-    console.error('Firebase compat not loaded.');
+  if (!isFirebaseCompatLoaded()) {
+    console.error('Firebase compat SDK not loaded (expected firebase global).');
     return;
   }
-  if (!firebase.apps.length) {
+  if (!firebase.apps || !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
+  }
+  if (!firebase.database) {
+    console.error('Firebase database not available on compat bundle.');
+    return;
   }
   database = firebase.database();
 }
 
+// --- DOM refs ---
 function getDOMElements() {
   usernameInput = document.getElementById('usernameInput');
   messageInput = document.getElementById('messageInput');
   sendMessageBtn = document.getElementById('sendMessage');
   messagesDiv = document.getElementById('messages');
+  themeToggleBtn = document.getElementById('themeToggle');
+
+  // Ensure toast is initially hidden to screen readers
+  const toast = document.getElementById('toast');
+  if (toast) toast.setAttribute('aria-hidden', 'true');
 }
 
-// Keep app height matching viewport (helps mobile)
+// --- App height (simple, accounts for body padding) ---
 function setAppHeight() {
   const appEl = document.querySelector('.app');
-  if (appEl) appEl.style.height = `${window.innerHeight}px`;
+  const bodyStyles = getComputedStyle(document.body);
+  const padTop = parseFloat(bodyStyles.paddingTop) || 0;
+  const padBottom = parseFloat(bodyStyles.paddingBottom) || 0;
+  if (appEl) {
+    appEl.style.minHeight = `${window.innerHeight - padTop - padBottom}px`;
+  }
 }
 window.addEventListener('resize', setAppHeight);
 window.addEventListener('orientationchange', setAppHeight);
 
-// --- Username memory with toast ---
+// --- Username memory + handlers ---
 function setupUsernameMemory() {
   if (!usernameInput) return;
   const saved = localStorage.getItem('username');
@@ -50,15 +79,6 @@ function setupUsernameMemory() {
     usernameInput.value = saved;
     localUsername = saved;
   }
-
-  usernameInput.addEventListener('blur', saveUsername);
-  usernameInput.addEventListener('keydown', (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      saveUsername();
-      messageInput.focus();
-    }
-  });
 
   function saveUsername() {
     const val = usernameInput.value.trim();
@@ -68,9 +88,24 @@ function setupUsernameMemory() {
       showToast('Username saved!');
     }
   }
+
+  // Save on blur or Enter
+  usernameInput.addEventListener('blur', saveUsername);
+  usernameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveUsername();
+      if (messageInput) messageInput.focus();
+    }
+  });
+
+  // Keep localUsername current while typing (helps immediate display equality)
+  usernameInput.addEventListener('input', () => {
+    localUsername = usernameInput.value.trim() || null;
+  });
 }
 
-// --- Write a new message ---
+// --- Write message to DB ---
 function writeNewMessage(username, text) {
   if (!database) return console.error('Database not initialized.');
   const newMessageRef = database.ref('messages').push();
@@ -81,37 +116,35 @@ function writeNewMessage(username, text) {
   }).catch(err => console.error('Write failed', err));
 }
 
-// --- safe text helper ---
-function safeText(t) {
-  // returns a string safe for textContent
-  return String(t == null ? '' : t);
-}
-
-// --- Display a message (structured and accessible) ---
+// --- Display one message (uses classes; minimal inline styles) ---
 function displayMessage(message) {
-  // remove initial placeholder system note if present
+  if (!messagesDiv) return;
+
+  // remove the "system" placeholder if present
   const systemEl = messagesDiv.querySelector('.system');
   if (systemEl) systemEl.remove();
 
-  const msgWrap = document.createElement('div');
-  msgWrap.id = message.id;
-  msgWrap.className = (message.username === localUsername) ? 'mine' : '';
-  msgWrap.style.display = 'flex';
-  msgWrap.style.justifyContent = 'space-between';
-  msgWrap.style.alignItems = 'center';
-  msgWrap.style.marginBottom = '6px';
-  msgWrap.setAttribute('role', 'article');
+  // sanitize and compute element id
+  const domId = sanitizeId(message.id || (Date.now().toString()));
+  // if element already exists (re-emit), skip
+  if (document.getElementById(domId)) return;
 
+  const wrap = document.createElement('div');
+  wrap.id = domId;
+  wrap.classList.add('message');
+  if ((message.username || '') === (localUsername || '')) wrap.classList.add('mine');
+  wrap.setAttribute('role', 'article');
+
+  // left column (username + text + meta)
   const left = document.createElement('div');
-  left.style.display = 'flex';
-  left.style.flexDirection = 'column';
-  left.style.gap = '4px';
+  left.className = 'message-left';
 
   const uname = document.createElement('span');
   uname.className = 'username';
   uname.textContent = safeText(message.username || 'Anonymous');
 
-  const textEl = document.createElement('span');
+  const textEl = document.createElement('div');
+  textEl.className = 'message-text';
   textEl.textContent = safeText(message.text || '');
 
   const meta = document.createElement('span');
@@ -121,8 +154,6 @@ function displayMessage(message) {
     if (!isNaN(date)) {
       meta.textContent = date.toLocaleString();
       meta.title = date.toISOString();
-    } else {
-      meta.textContent = '';
     }
   }
 
@@ -130,38 +161,44 @@ function displayMessage(message) {
   left.appendChild(textEl);
   left.appendChild(meta);
 
+  // actions (delete etc)
   const actions = document.createElement('div');
-  actions.style.display = 'flex';
-  actions.style.alignItems = 'center';
+  actions.className = 'message-actions';
 
   const deleteBtn = document.createElement('button');
-  deleteBtn.textContent = "❌";
+  deleteBtn.className = 'delete-message-btn';
+  deleteBtn.type = 'button';
   deleteBtn.title = 'Delete message';
-  deleteBtn.style.cursor = 'pointer';
-  deleteBtn.style.border = 'none';
-  deleteBtn.style.background = 'transparent';
-  deleteBtn.style.fontSize = '14px';
+  deleteBtn.setAttribute('aria-label', 'Delete message');
+  deleteBtn.textContent = '❌';
   deleteBtn.addEventListener('click', () => {
-    if (confirm("Delete this message?")) {
+    if (!database) return;
+    if (confirm('Delete this message?')) {
       database.ref('messages').child(message.id).remove().catch(err => console.error('Delete failed', err));
     }
   });
 
   actions.appendChild(deleteBtn);
 
-  msgWrap.appendChild(left);
-  msgWrap.appendChild(actions);
+  wrap.appendChild(left);
+  wrap.appendChild(actions);
 
-  messagesDiv.appendChild(msgWrap);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  // Auto-scroll behavior: only scroll if user is near bottom
+  const wasNearBottom = (messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight) < 80;
+  messagesDiv.appendChild(wrap);
+  if (wasNearBottom) {
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
 }
 
-// --- Event listeners ---
+// --- Event listeners (send / enter / theme) ---
 function setupEventListeners() {
-  if (sendMessageBtn) {
+  if (sendMessageBtn && messageInput) {
     sendMessageBtn.addEventListener('click', () => {
       const messageText = messageInput.value.trim();
-      const usernameText = (usernameInput.value.trim() || 'Anonymous');
+      const usernameText = (usernameInput && usernameInput.value.trim()) || 'Anonymous';
+      // ensure localUsername reflects current input (helps mine highlighting)
+      localUsername = (usernameInput && usernameInput.value.trim()) || localUsername;
       if (messageText) {
         writeNewMessage(usernameText, messageText);
         messageInput.value = '';
@@ -174,50 +211,66 @@ function setupEventListeners() {
     messageInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        sendMessageBtn.click();
+        sendMessageBtn && sendMessageBtn.click();
       }
     });
   }
 
-  const themeToggle = document.getElementById('themeToggle');
-  if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-      document.body.classList.toggle('light');
+  if (themeToggleBtn) {
+    // restore theme
+    const savedTheme = localStorage.getItem('theme'); // 'light' or 'dark'
+    if (savedTheme === 'light') document.body.classList.add('light');
+
+    const updateThemeButton = () => {
+      const isLight = document.body.classList.contains('light');
+      themeToggleBtn.setAttribute('aria-pressed', String(isLight));
+    };
+    updateThemeButton();
+
+    themeToggleBtn.addEventListener('click', () => {
+      const willBeLight = !document.body.classList.toggle('light');
+      // toggle returns false when class removed; we want to store actual state:
+      const isNowLight = document.body.classList.contains('light');
+      localStorage.setItem('theme', isNowLight ? 'light' : 'dark');
+      updateThemeButton();
+      showToast(isNowLight ? 'Light theme enabled' : 'Dark theme enabled');
     });
   }
 }
 
-// --- Listen for messages ---
+// --- Listen for messages (Firebase Realtime DB) ---
 function listenForMessages() {
-  if (!database) return;
-  const ref = database.ref('messages').orderByChild('timestamp');
+  if (!database) return console.warn('No database to listen to yet.');
+  const ref = database.ref('messages').orderByChild('timestamp').limitToLast(500);
   ref.on('child_added', (snapshot) => {
-    const obj = snapshot.val();
+    const obj = snapshot.val() || {};
     obj.id = snapshot.key;
     displayMessage(obj);
   });
 
   ref.on('child_removed', (snapshot) => {
-    const removedId = snapshot.key;
+    const removedId = sanitizeId(snapshot.key);
     const element = document.getElementById(removedId);
     if (element) element.remove();
   });
 }
 
-// --- Toast helper ---
-let toastTimer = null;
+// --- Toast helper (manages aria-hidden) ---
 function showToast(message) {
   const toast = document.getElementById('toast');
   if (!toast) return;
   toast.textContent = message;
   toast.classList.add('show');
+  toast.setAttribute('aria-hidden', 'false');
+
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toast.classList.remove('show');
+    toast.setAttribute('aria-hidden', 'true');
   }, 1800);
 }
 
-// --- Main entry point ---
+// --- Main entrypoint ---
 function main() {
   initFirebase();
   getDOMElements();
