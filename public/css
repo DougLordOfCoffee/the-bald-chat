@@ -1,8 +1,32 @@
+/* PAGE LAYOUT FIXES */
 .side {
   display: flex;
   flex-direction: column;
-  gap: 0px; /* Adjust this value for more or less spacing */
+  gap: 14px;
 }
+
+.panel {
+  background: var(--panel);
+}
+
+#messages {
+  background: var(--bubble);
+  border: 1px solid var(--bubble-alt);
+}
+
+#messages > * {
+  background: var(--bubble);
+}
+
+#messageInput,
+#usernameInput {
+  background: var(--bubble);
+}
+
+.panel:first-of-type {
+  width: 100%;
+}
+
 .small {
   font-size: 0.85rem;
   color: var(--muted);
