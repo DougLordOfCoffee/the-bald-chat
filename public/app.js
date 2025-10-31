@@ -15,6 +15,10 @@ let usernameInput, messageInput, sendMessageBtn, messagesDiv, themeToggleBtn;
 let localUsername = null;
 let toastTimer = null;
 
+const provider = new firebase.auth.GoogleAuthProvider();
+firebase.auth().signInWithPopup(provider);
+
+
 // --- Helpers ---
 function sanitizeId(key) {
   // make a safe DOM id, prefix with "msg_" so it never starts with a digit
@@ -170,7 +174,8 @@ function displayMessage(message) {
   deleteBtn.type = 'button';
   deleteBtn.title = 'Delete message';
   deleteBtn.setAttribute('aria-label', 'Delete message');
-  deleteBtn.textContent = '❌';
+  deleteBtn.innerHTML = "&times;";
+  deleteBtn.className = "delete-btn";
   deleteBtn.addEventListener('click', () => {
     if (!database) return;
     if (confirm('Delete this message?')) {

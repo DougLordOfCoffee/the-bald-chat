@@ -52,14 +52,7 @@ body {
 }
 
 .panel { display: flex; flex-direction: column; }
-
-/* panel */
-#messages {
-  flex: 1 1 auto;
-  min-height: 320px; /* fallback */
-  height: auto;      /* remove fixed height if you want full-flex behavior */
-}
-
+#messages { flex: 1 1 auto; height: auto; min-height: 320px; max-height: 80vh; }
 
 /* Header */
 header.title {
@@ -122,10 +115,10 @@ header.title p {
   font-size: 0.95rem;
   transition: background 0.2s ease;
 }
-:focus-visible { outline: 3px solid rgba(155,92,246,0.25); outline-offset: 2px; }
 
-/* better button keyboard focus */
-button:focus-visible { box-shadow: 0 0 0 4px rgba(155,92,246,0.12); }
+:focus-visible { outline: 3px solid rgba(155,92,246,0.18); outline-offset: 2px; }
+button:focus-visible, input:focus-visible { box-shadow: 0 0 0 4px rgba(155,92,246,0.06); }
+
 
 #messages .username {
   display: block;
@@ -144,6 +137,14 @@ button:focus-visible { box-shadow: 0 0 0 4px rgba(155,92,246,0.12); }
 
 #messages .message.mine { margin-left: auto; /* etc */ }
 #messages .system { text-align:center; background: transparent; }
+
+.message .message-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0; /* prevents flex children from overflowing */
+}
+
 
 /* Inputs */
 #messageInput,
@@ -207,17 +208,19 @@ button:focus-visible { box-shadow: 0 0 0 4px rgba(155,92,246,0.12); }
   header.title h1 { font-size: 1.05rem; }
 }
 
-.light {
-  --bg: #ece9e4;
-  --text: #0b0b0b;
+body.light {
+  --bg: #f3f1ef;
+  --text: #101010;
   --panel: #ffffff;
-  --bubble: #f3f2f2;
-  --bubble-alt: rgba(0,0,0,0.06);
+  --bubble: #f0f0f4;
+  --bubble-alt: #ececec;
   --accent: #6b3bd6;
-  --accent2: #00a9bf;
-  --success: #00b285;
+  --accent2: #007f91;
+  --me: rgba(155,92,246,0.14);
   --muted: #6b7280;
+  --success: #05c08b;
 }
+
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
@@ -225,4 +228,76 @@ button:focus-visible { box-shadow: 0 0 0 4px rgba(155,92,246,0.12); }
 }
 @media (prefers-color-scheme: light) {
   :root { /* light variable defaults */ }
+}
+
+/* Toggle container */
+.toggle-btn {
+  width: 44px;
+  height: 22px;
+  border-radius: 22px;
+  background: var(--border);
+  position: relative;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+/* Toggle circle */
+.toggle-btn .toggle-handle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+body.light .toggle-btn {
+  background: var(--border);
+}
+
+body.light .toggle-btn .toggle-handle {
+  transform: translateX(22px);
+  background: var(--text);
+}
+
+.delete-btn {
+  font-size: 18px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.delete-btn:hover {
+  opacity: 1;
+}
+
+/* Scrollbar */
+#messages {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--background);
+}
+
+#messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+#messages::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+#messages::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.top-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
