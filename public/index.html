@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>The Dome</title>
-<link rel="icon" href="Favicon.png" type="image/png">
-<img src="Favicon.png" alt="The Dome logo" width="32" height="32">
+  <link rel="icon" href="Favicon.png" type="image/png">
+  <img src="Favicon.png" alt="The Dome logo" width="32" height="32">
   <link rel="stylesheet" href="css.css">
 </head>
 
@@ -21,10 +21,11 @@
         </div>
       </header>
 
-      <div id="messages" aria-live="polite" aria-atomic="false">
-        <div class="system">No messages yet — say something to start the conversation.</div>
-      </div>
-
+       <div id="messages" role="log" aria-live="polite">
+    <ul id="messageList">
+      <li class="system" role="status">No messages yet …</li>
+    </ul>
+  </div>
       <div style="margin-top:14px; display:flex; gap:12px; align-items:center;">
         <input id="messageInput" type="text" placeholder="Type your message..." aria-label="Message input" />
         <button id="sendMessage" type="button" aria-label="Send message">Send</button>
