@@ -295,9 +295,3 @@ body.light .toggle-btn .toggle-handle {
   background: var(--border);
   border-radius: 3px;
 }
-.top-controls {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}

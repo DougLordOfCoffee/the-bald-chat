@@ -15,9 +15,6 @@ let usernameInput, messageInput, sendMessageBtn, messagesDiv, themeToggleBtn;
 let localUsername = null;
 let toastTimer = null;
 
-const provider = new firebase.auth.GoogleAuthProvider();
-firebase.auth().signInWithPopup(provider);
-
 
 // --- Helpers ---
 function sanitizeId(key) {
