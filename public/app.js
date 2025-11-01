@@ -1,4 +1,5 @@
 // --- Firebase Configuration ---
+import "firebase/compat/storage";
 const firebaseConfig = {
   apiKey: "AIzaSyAANuaXF-zSqAs9kzIBnW3ROLDwxGXA1p8",
   authDomain: "the-bald-chat.firebaseapp.com",
