@@ -112,6 +112,7 @@ function writeNewMessage(username, text) {
   const newMessageRef = database.ref('messages').push();
   newMessageRef.set({
     username: username,
+    uid: firebase.auth().currentUser?.uid || null,
     text: text,
     timestamp: firebase.database.ServerValue.TIMESTAMP
   }).catch(err => console.error('Write failed', err));
@@ -279,12 +280,51 @@ function showToast(message) {
   }, 1800);
 }
 
+function setupGoogleLogin() {
+  const googleBtn = document.getElementById('googleBtn');
+  if (!googleBtn) return;
+
+  googleBtn.addEventListener('click', async () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+      const result = await firebase.auth().signInWithPopup(provider);
+      const user = result.user;
+
+      if (user) {
+        // If user has logged in before, restore their saved username
+        const userRef = firebase.database().ref(`users/${user.uid}/username`);
+        userRef.once("value", snap => {
+          if (snap.exists()) {
+            // Load their stored username
+            localUsername = snap.val();
+            localStorage.setItem('username', localUsername);
+            usernameInput.value = localUsername;
+            showToast(`Welcome back ${localUsername}`);
+          } else {
+            // If first time, use whatever username is currently typed
+            localUsername = usernameInput.value || "Anonymous";
+            localStorage.setItem('username', localUsername);
+            userRef.set(localUsername);
+            showToast(`Signed in as ${localUsername}`);
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Google Sign-in failed:", err);
+      showToast("Sign-in canceled.");
+    }
+  });
+}
+
+
+
 // --- Main entrypoint ---
 function main() {
   initFirebase();
   getDOMElements();
   setAppHeight();
   setupUsernameMemory();
+  setupGoogleLogin();
   setupEventListeners();
   listenForMessages();
 }
