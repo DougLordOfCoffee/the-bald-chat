@@ -11,44 +11,40 @@
   <!-- Styles -->
   <link rel="stylesheet" href="css.css">
 
-  <!-- Firebase -->
+  <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
-  <script src=".../firebase-storage.js"></script>
 
   <!-- App -->
   <script src="app.js" defer></script>
 </head>
-
 
 <body>
   <div class="app">
     <!-- CHAT PANEL -->
     <div class="panel" style="grid-column:1">
       <header class="title">
-  <div class="logo"><img src="Favicon.png" alt="Logo"></div>
-  <div>
-    <h1>Main Chat</h1>
-    <p>Open Chat • Owned by Doug</p>
-  </div>
+        <div class="logo"><img src="Favicon.png" alt="Logo" width="44" height="44"></div>
+        <div>
+          <h1>Main Chat</h1>
+          <p>Open Chat • Owned by Doug</p>
+        </div>
 
-  <div class="top-controls">
-    <button id="themeToggle" class="toggle-btn">
-      <span class="toggle-handle"></span>
-    </button>
-  </div>
-</header>
-       <div id="messages" role="log" aria-live="polite">
-    <ul id="messageList">
-      <li class="system" role="status">No messages yet …</li>
-    </ul>
-  </div>
+        <div class="top-controls" style="margin-left:auto;">
+          <button id="themeToggle" class="toggle-btn" aria-pressed="false">
+            <span class="toggle-handle"></span>
+          </button>
+        </div>
+      </header>
+
+      <div id="messages" role="log" aria-live="polite">
+        <div class="system">No messages yet — say something to start the conversation.</div>
+      </div>
+
       <div style="margin-top:14px; display:flex; gap:12px; align-items:center;">
         <input id="messageInput" type="text" placeholder="Type your message..." aria-label="Message input" />
         <button id="sendMessage" type="button" aria-label="Send message">Send</button>
-        <input type="file" id="imageUpload" accept="image/*" style="display:none;">
-        <button id="uploadImageBtn">📷</button>
       </div>
     </div>
 
@@ -61,10 +57,14 @@
           Tip: Set a short username so messages look nicer.
         </p>
       </div>
-      <button id="googleBtn">Sign in with Google</button>
+
+      <div style="padding:0 16px;">
+        <button id="googleBtn">Sign in with Google</button>
+      </div>
+
       <div class="panel" style="padding:12px; display:flex; flex-direction:column; gap:8px;">
         <strong style="font-size:0.95rem">Quick actions</strong>
-        <div style="color:var(--muted); font-size:0.9rem;">• Press Enter to send </div>
+        <div style="color:var(--muted); font-size:0.9rem;">• Press Enter to send</div>
       </div>
 
       <div class="panel" style="padding:16px; text-align:center;">
