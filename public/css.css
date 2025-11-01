@@ -311,3 +311,31 @@ body.light {
   color: white;
 }
 
+#googleBtn {
+  background: #141414;
+  color: #d9d9d9;
+  border: 2px solid #444;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.25s ease;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+#googleBtn:hover {
+  background: #1f1f1f;
+  border-color: #777;
+}
+
+/* When user is signed in */
+#googleBtn.signed-in {
+  border-color: #00ff9d;
+  box-shadow: 0 0 12px #00ff9d88;
+  color: #00ff9d;
+}
+
+/* gives messages glow*/
+#messages img {
+  box-shadow: 0 0 12px rgba(155, 92, 246, 0.25);
+}

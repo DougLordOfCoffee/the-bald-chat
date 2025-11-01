@@ -7,7 +7,7 @@ const firebaseConfig = {
   messagingSenderId: "831148484483",
   appId: "1:831148484483:web:23747c98adcd6e989db8b6",
   databaseURL: "https://the-bald-chat-default-rtdb.firebaseio.com"
-};
+  const ADMIN_UID = "shELHHG7NJPJqQ0aRb7NR3sPhpJ3"; // MY ID and admin user. so me. HAHA. yeah fuck you cunt.
 
 // --- Global refs ---
 let database;
@@ -44,6 +44,7 @@ function initFirebase() {
     return;
   }
   database = firebase.database();
+  const storage = firebase.storage();
 }
 
 // --- DOM refs ---
@@ -72,25 +73,59 @@ function setAppHeight() {
 window.addEventListener('resize', setAppHeight);
 window.addEventListener('orientationchange', setAppHeight);
 
-// --- Username memory + handlers ---
 function setupUsernameMemory() {
   if (!usernameInput) return;
-  const saved = localStorage.getItem('username');
-  if (saved) {
-    usernameInput.value = saved;
-    localUsername = saved;
-  }
 
-  function saveUsername() {
-    const val = usernameInput.value.trim();
-    if (val) {
-      localStorage.setItem('username', val);
-      localUsername = val;
-      showToast('Username saved!');
+  const auth = firebase.auth();
+  const usersRef = database.ref('users');
+  const usernamesRef = database.ref('usernames');
+
+  firebase.auth().onAuthStateChanged(async (user) => {
+    if (!user) return; // Not signed in -> skip username enforcement
+
+    const uid = user.uid;
+
+    // Load username from DB
+    const snap = await usersRef.child(uid).child('username').get();
+    if (snap.exists()) {
+      localUsername = snap.val();
+      usernameInput.value = localUsername;
+      localStorage.setItem('username', localUsername);
     }
+  });
+
+  // --- Username memory + handlers ---
+  async function saveUsername() {
+    const user = auth.currentUser;
+    const newName = usernameInput.value.trim();
+
+    if (!newName) return;
+
+    // Lowercase to avoid case-duplication issues
+    const key = newName.toLowerCase();
+
+    const usernameOwner = await usernamesRef.child(key).get();
+
+    if (usernameOwner.exists() && usernameOwner.val() !== auth.currentUser.uid) {
+      showToast('Name already taken.');
+      usernameInput.value = localUsername || '';
+      return;
+    }
+
+    // If user had old username, free it
+    if (localUsername) {
+      await usernamesRef.child(localUsername.toLowerCase()).remove();
+    }
+
+    // Save new username
+    await usernamesRef.child(key).set(auth.currentUser.uid);
+    await database.ref('users').child(auth.currentUser.uid).child('username').set(newName);
+
+    localUsername = newName;
+    localStorage.setItem('username', newName);
+    showToast('Username updated!');
   }
 
-  // Save on blur or Enter
   usernameInput.addEventListener('blur', saveUsername);
   usernameInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -100,7 +135,6 @@ function setupUsernameMemory() {
     }
   });
 
-  // Keep localUsername current while typing (helps immediate display equality)
   usernameInput.addEventListener('input', () => {
     localUsername = usernameInput.value.trim() || null;
   });
@@ -117,6 +151,18 @@ function writeNewMessage(username, text) {
     timestamp: firebase.database.ServerValue.TIMESTAMP
   }).catch(err => console.error('Write failed', err));
 }
+
+// --- Write New Image to DB ---
+function writeNewMessageImage(username, imageURL) {
+  const newMessageRef = database.ref('messages').push();
+  newMessageRef.set({
+    username: username,
+    imageURL: imageURL,
+    timestamp: firebase.database.ServerValue.TIMESTAMP,
+    uid: firebase.auth().currentUser?.uid || null
+  });
+}
+
 
 // --- Display one message (uses classes; minimal inline styles) ---
 function displayMessage(message) {
@@ -143,11 +189,29 @@ function displayMessage(message) {
 
   const uname = document.createElement('span');
   uname.className = 'username';
-  uname.textContent = safeText(message.username || 'Anonymous');
+  if (message.uid === ADMIN_UID) {
+   u name.textContent = safeText(message.username) + " ⭐";
+  } else {
+   uname.textContent = safeText(message.username || 'Anonymous');
+  }
+
 
   const textEl = document.createElement('div');
   textEl.className = 'message-text';
+  if (message.imageURL) {
+  const img = document.createElement('img');
+  img.src = message.imageURL;
+  img.alt = "Image";
+  img.style.maxWidth = "280px";
+  img.style.borderRadius = "10px";
+  img.style.cursor = "pointer";
+  img.onclick = () => window.open(message.imageURL, "_blank");
+  left.appendChild(img);
+} else {
   textEl.textContent = safeText(message.text || '');
+  left.appendChild(textEl);
+}
+
 
   const meta = document.createElement('span');
   meta.className = 'meta';
@@ -188,7 +252,10 @@ function displayMessage(message) {
     }
   });
 
+if (message.uid === firebase.auth().currentUser.uid || firebase.auth().currentUser.uid === ADMIN_UID) {
   actions.appendChild(deleteBtn);
+}
+
 
   wrap.appendChild(left);
   wrap.appendChild(actions);
@@ -215,6 +282,18 @@ function setupEventListeners() {
         messageInput.focus();
       }
     });
+  const googleBtn = document.getElementById('googleBtn');
+if (googleBtn) {
+  googleBtn.addEventListener('click', async () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+      await firebase.auth().signInWithPopup(provider);
+    } catch (err) {
+      console.error("Google Sign-in failed:", err);
+    }
+  });
+}
+
   }
 
   if (messageInput) {
@@ -246,6 +325,39 @@ function setupEventListeners() {
       showToast(isNowLight ? 'Light theme enabled' : 'Dark theme enabled');
     });
   }
+  const uploadBtn = document.getElementById('uploadImageBtn');
+const fileInput = document.getElementById('imageUpload');
+
+uploadBtn.addEventListener('click', () => {
+  fileInput.click();
+});
+
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const user = firebase.auth().currentUser;
+  const usernameText = (localUsername || 'Anonymous');
+  const timestamp = Date.now();
+
+  // Where to store image:
+  const storageRef = storage.ref(`images/${user ? user.uid : 'anon'}/${timestamp}_${file.name}`);
+
+  try {
+    await storageRef.put(file);
+    const url = await storageRef.getDownloadURL();
+
+    writeNewMessageImage(usernameText, url);
+    showToast("Image Sent");
+
+  } catch (err) {
+    console.error("Image upload failed:", err);
+    showToast("Upload failed");
+  }
+
+  fileInput.value = "";
+});
+
 }
 
 // --- Listen for messages (Firebase Realtime DB) ---
@@ -321,6 +433,29 @@ function setupGoogleLogin() {
 // --- Main entrypoint ---
 function main() {
   initFirebase();
+
+  let auth; // global
+
+function initAuth() {
+  auth = firebase.auth();
+  firebase.auth().onAuthStateChanged(user => {
+    const googleBtn = document.getElementById('googleBtn');
+
+    if (user) {
+      // Logged in
+      googleBtn.classList.add('signed-in');
+      googleBtn.textContent = `Signed in as ${user.displayName}`;
+      localStorage.setItem('username', user.displayName); // match username to Google name
+      usernameInput.value = user.displayName;
+      localUsername = user.displayName;
+    } else {
+      // Logged out
+      googleBtn.classList.remove('signed-in');
+      googleBtn.textContent = `Sign in with Google`;
+    }
+  });
+}
+  initAuth();
   getDOMElements();
   setAppHeight();
   setupUsernameMemory();
