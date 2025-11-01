@@ -179,67 +179,90 @@ function writeNewMessage(username, text) {
 
 // --- Display message for channel (DOM id includes channel) ---
 function displayMessageForChannel(message) {
+  // ensure channel attached
   if (!message._channel) message._channel = currentChannelId;
-  if (!messagesDiv) return;
+  if (!messagesDiv) {
+    console.warn("displayMessageForChannel: messagesDiv missing", message);
+    return;
+  }
 
+  // remove system placeholder
   const systemEl = messagesDiv.querySelector(".system");
   if (systemEl) systemEl.remove();
 
   const domId = sanitizeChannelMessageId(message._channel, message.id);
-  if (document.getElementById(domId)) return;
+  console.log("displayMessageForChannel called for", domId, message);
 
-  const wrap = document.createElement("div");
-  wrap.id = domId;
-  wrap.classList.add("message");
-  if ((message.username || "") === (localUsername || "")) wrap.classList.add("mine");
-  wrap.setAttribute("role", "article");
-
-  const left = document.createElement("div");
-  left.className = "message-left";
-
-  const uname = document.createElement("span");
-  uname.className = "username";
-  uname.textContent = message.uid === ADMIN_UID ? (safeText(message.username || "Anonymous") + " ⭐") : safeText(message.username || "Anonymous");
-
-  const textEl = document.createElement("div");
-  textEl.className = "message-text";
-  textEl.textContent = safeText(message.text || "");
-
-  const meta = document.createElement("span");
-  meta.className = "meta";
-  if (message.timestamp) {
-    const date = new Date(Number(message.timestamp));
-    if (!isNaN(date)) { meta.textContent = date.toLocaleString(); meta.title = date.toISOString(); }
+  // if element exists, update it instead of exiting silently
+  let wrap = document.getElementById(domId);
+  if (wrap) {
+    console.log("Element already exists — updating content:", domId);
+    const textEl = wrap.querySelector(".message-text");
+    if (textEl) textEl.textContent = safeText(message.text || "");
+    const meta = wrap.querySelector(".meta");
+    if (meta && message.timestamp) meta.textContent = new Date(Number(message.timestamp)).toLocaleString();
+    return;
   }
 
-  left.appendChild(uname);
-  left.appendChild(textEl);
-  left.appendChild(meta);
-  wrap.appendChild(left);
+  // Build DOM
+  try {
+    wrap = document.createElement("div");
+    wrap.id = domId;
+    wrap.classList.add("message");
+    if ((message.username || "") === (localUsername || "")) wrap.classList.add("mine");
+    wrap.setAttribute("role", "article");
 
-  // actions (delete)
-  const actions = document.createElement("div");
-  actions.className = "message-actions";
-  const deleteBtn = document.createElement("button");
-  deleteBtn.className = "delete-btn";
-  deleteBtn.innerHTML = "&times;";
-  deleteBtn.addEventListener("click", () => {
-    if (!database) return;
-    if (!confirm("Delete this message?")) return;
-    database.ref(`messages/${message._channel}`).child(message.id).remove().catch(console.error);
-  });
+    const left = document.createElement("div");
+    left.className = "message-left";
 
-  const currentUserId = auth && auth.currentUser ? auth.currentUser.uid : null;
-  if (currentUserId && (message.uid === currentUserId || currentUserId === ADMIN_UID)) {
-    actions.appendChild(deleteBtn);
+    const uname = document.createElement("span");
+    uname.className = "username";
+    uname.textContent = message.uid === ADMIN_UID ? (safeText(message.username || "Anonymous") + " ⭐") : safeText(message.username || "Anonymous");
+
+    const textEl = document.createElement("div");
+    textEl.className = "message-text";
+    textEl.textContent = safeText(message.text || "");
+
+    const meta = document.createElement("span");
+    meta.className = "meta";
+    if (message.timestamp) {
+      const date = new Date(Number(message.timestamp));
+      if (!isNaN(date)) { meta.textContent = date.toLocaleString(); meta.title = date.toISOString(); }
+    }
+
+    left.appendChild(uname);
+    left.appendChild(textEl);
+    left.appendChild(meta);
+    wrap.appendChild(left);
+
+    // delete button
+    const actions = document.createElement("div");
+    actions.className = "message-actions";
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "delete-btn";
+    deleteBtn.innerHTML = "&times;";
+    deleteBtn.addEventListener("click", () => {
+      if (!database) return;
+      if (!confirm("Delete this message?")) return;
+      database.ref(`messages/${message._channel}`).child(message.id).remove().catch(console.error);
+    });
+
+    const currentUserId = auth && auth.currentUser ? auth.currentUser.uid : null;
+    if (currentUserId && (message.uid === currentUserId || currentUserId === ADMIN_UID)) {
+      actions.appendChild(deleteBtn);
+    }
+
+    wrap.appendChild(actions);
+    messagesDiv.appendChild(wrap);
+
+    const wasNearBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 80;
+    if (wasNearBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    console.log("displayMessageForChannel appended:", domId);
+  } catch (err) {
+    console.error("displayMessageForChannel failed to build DOM:", err, message);
   }
-
-  wrap.appendChild(actions);
-  messagesDiv.appendChild(wrap);
-
-  const wasNearBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 80;
-  if (wasNearBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
+
 
 // --- Event listeners (send / enter / theme) ---
 function setupEventListeners() {
@@ -438,15 +461,60 @@ function clearMessagesView() {
 }
 
 function listenForChannelMessages(channelId) {
-  if (!database || !channelId) return;
-  currentChannelMessagesRef = database.ref(`messages/${channelId}`).orderByChild("timestamp").limitToLast(500);
+  if (!database || !channelId) {
+    console.warn("listenForChannelMessages called without DB or channelId:", channelId);
+    return;
+  }
+
+  console.log("Listening for channel messages on:", channelId);
+  currentChannelMessagesRef = database.ref(`messages/${channelId}`).orderByChild('timestamp').limitToLast(500);
 
   currentChannelMessagesRef.on("child_added", (snapshot) => {
     const obj = snapshot.val() || {};
     obj.id = snapshot.key;
     obj._channel = channelId;
-    displayMessageForChannel(obj);
+    console.log("[child_added]", channelId, "msgId=", obj.id, obj);
+    try {
+      displayMessageForChannel(obj);
+      // log whether element now exists
+      const domId = sanitizeChannelMessageId(channelId, obj.id);
+      console.log("[child_added] appended element:", !!document.getElementById(domId), domId);
+    } catch (err) {
+      console.error("displayMessageForChannel threw:", err, obj);
+    }
   });
+
+  currentChannelMessagesRef.on("child_changed", (snapshot) => {
+    const obj = snapshot.val() || {};
+    obj.id = snapshot.key;
+    obj._channel = channelId;
+    console.log("[child_changed]", channelId, "msgId=", obj.id, obj);
+    const domId = sanitizeChannelMessageId(channelId, obj.id);
+    const el = document.getElementById(domId);
+    if (el) {
+      const txt = el.querySelector(".message-text");
+      if (txt) txt.textContent = safeText(obj.text || "");
+      const meta = el.querySelector(".meta");
+      if (meta && obj.timestamp) meta.textContent = new Date(Number(obj.timestamp)).toLocaleString();
+      console.log("[child_changed] updated DOM:", domId);
+    } else {
+      console.log("[child_changed] DOM missing, calling displayMessageForChannel()");
+      displayMessageForChannel(obj);
+    }
+  });
+
+  currentChannelMessagesRef.on("child_removed", (snapshot) => {
+    const domId = sanitizeChannelMessageId(channelId, snapshot.key);
+    const el = document.getElementById(domId);
+    if (el) {
+      el.remove();
+      console.log("[child_removed] removed DOM:", domId);
+    } else {
+      console.log("[child_removed] DOM not found for:", domId);
+    }
+  });
+}
+
 
   currentChannelMessagesRef.on("child_changed", (snapshot) => {
     const obj = snapshot.val() || {};
