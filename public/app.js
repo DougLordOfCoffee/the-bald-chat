@@ -8,14 +8,14 @@ const firebaseConfig = {
   appId: "1:831148484483:web:23747c98adcd6e989db8b6",
   databaseURL: "https://the-bald-chat-default-rtdb.firebaseio.com"
 }
-import 'firebase/compat/storage'
+
 const ADMIN_UID = "shELHHG7NJPJqQ0aRb7NR3sPhpJ3"; // MY ID and admin user. so me. HAHA. yeah fuck you cunt.
 // --- Global refs ---
 let database;
 let usernameInput, messageInput, sendMessageBtn, messagesDiv, themeToggleBtn;
 let localUsername = null;
 let toastTimer = null;
-
+let storage;
 
 // --- Helpers ---
 function sanitizeId(key) {
@@ -46,7 +46,7 @@ function initFirebase() {
   }
   
   database = firebase.database();
-  const storage = firebase.storage();
+  storage = firebase.storage();
 }
 
 // --- DOM refs ---
@@ -254,7 +254,8 @@ function displayMessage(message) {
     }
   });
 
-if (message.uid === firebase.auth().currentUser.uid || firebase.auth().currentUser.uid === ADMIN_UID) {
+const currentUser = firebase.auth().currentUser;
+if (currentUser && (message.uid === currentUser.uid || currentUser.uid === ADMIN_UID)) {
   actions.appendChild(deleteBtn);
 }
 
@@ -284,18 +285,6 @@ function setupEventListeners() {
         messageInput.focus();
       }
     });
-  const googleBtn = document.getElementById('googleBtn');
-if (googleBtn) {
-  googleBtn.addEventListener('click', async () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    try {
-      await firebase.auth().signInWithPopup(provider);
-    } catch (err) {
-      console.error("Google Sign-in failed:", err);
-    }
-  });
-}
-
   }
 
   if (messageInput) {
