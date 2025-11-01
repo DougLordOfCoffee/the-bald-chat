@@ -9,7 +9,7 @@ const firebaseConfig = {
   databaseURL: "https://the-bald-chat-default-rtdb.firebaseio.com"
 };
 
-// Admin UID (replace if you change acounts)
+// Admin UID (replace with your real UID if you rotate accounts)
 const ADMIN_UID = "shELHHG7NJPJqQ0aRb7NR3sPhpJ3";
 
 // --- Global refs ---
@@ -24,21 +24,6 @@ let googleBtn;
 let localUsername = null;
 let toastTimer = null;
 
-// --- session id for non-auth users (used for typing + reactions fallback) ---
-let sessionClientId = sessionStorage.getItem('sessionClientId');
-if (!sessionClientId) {
-  sessionClientId = 'anon_' + Math.random().toString(36).slice(2, 10);
-  sessionStorage.setItem('sessionClientId', sessionClientId);
-}
-function currentClientId() {
-  return (auth && auth.currentUser && auth.currentUser.uid) || sessionClientId;
-}
-function currentDisplayName() {
-  return (auth && auth.currentUser && auth.currentUser.displayName) || localUsername || 'Anonymous';
-}
-const REACTION_EMOJIS = ['👍','🔥','❤️','💀','ඞ']; // tweakable, just add stuff.
-
-
 // --- Helpers ---
 function sanitizeId(key) {
   return "msg_" + String(key).replace(/[^a-zA-Z0-9\-_:.]/g, "_");
@@ -51,55 +36,6 @@ function safeText(t) {
 function isFirebaseCompatLoaded() {
   return typeof window.firebase === "object" && typeof window.firebase.initializeApp === "function";
 }
-// Render reactions UI for a message (reactionsObj structure: { emoji: { uid1:true, uid2:true } })
-function renderReactions(messageId, reactionsObj = {}) {
-  const domId = sanitizeId(messageId);
-  const wrap = document.getElementById(domId);
-  if (!wrap) return;
-  const reactionsDiv = wrap.querySelector('.reactions');
-  if (!reactionsDiv) return;
-
-  // clear
-  reactionsDiv.innerHTML = '';
-
-  // for each emoji in our set, compute count
-  REACTION_EMOJIS.forEach(emoji => {
-    const users = reactionsObj && reactionsObj[emoji] ? Object.keys(reactionsObj[emoji]) : [];
-    const count = users.length;
-    const btn = document.createElement('button');
-    btn.className = 'reaction-btn';
-    btn.type = 'button';
-    btn.innerHTML = `${emoji} <span class="reaction-count">${count||''}</span>`;
-    btn.title = emoji;
-    // mark active if current user reacted
-    const meId = currentClientId();
-    if (users.includes(meId)) btn.classList.add('active');
-
-    // toggle handler
-    btn.addEventListener('click', () => {
-      toggleReaction(messageId, emoji);
-    });
-
-    reactionsDiv.appendChild(btn);
-  });
-}
-
-// Toggle a reaction for the current user
-async function toggleReaction(messageId, emoji) {
-  if (!database) return;
-  const uid = currentClientId();
-  const path = `messages/${messageId}/reactions/${encodeURIComponent(emoji)}/${uid}`;
-  const ref = database.ref(path);
-  const snap = await ref.get();
-  if (snap.exists()) {
-    // remove reaction (toggle off)
-    ref.remove().catch(console.error);
-  } else {
-    // add reaction
-    ref.set(true).catch(console.error);
-  }
-}
-
 
 // --- Firebase init ---
 function initFirebase() {
@@ -297,17 +233,6 @@ function displayMessage(message) {
 
   wrap.appendChild(actions);
 
-  // reactions container
-  const reactionsDiv = document.createElement('div');
-  reactionsDiv.className = 'reactions';
-  reactionsDiv.setAttribute('data-msgid', message.id || '');
-
-  // render placeholder (actual render will run below)
-  actions.appendChild(reactionsDiv);
-
-  // Render reactions initially (if any)
-  renderReactions(message.id, message.reactions || {});
-
   const wasNearBottom =
     messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 80;
   messagesDiv.appendChild(wrap);
@@ -373,30 +298,6 @@ function listenForMessages() {
     const element = document.getElementById(removedId);
     if (element) element.remove();
   });
-  ref.on('child_changed', (snapshot) => {
-   const obj = snapshot.val() || {};
-    obj.id = snapshot.key;
-    // update DOM text/meta if needed
-    const domId = sanitizeId(obj.id);
-    const el = document.getElementById(domId);
-    if (el) {
-     // update text
-     const textEl = el.querySelector('.message-text');
-     if (textEl) textEl.textContent = safeText(obj.text || '');
-     // update meta
-      const metaEl = el.querySelector('.meta');
-     if (metaEl && obj.timestamp) {
-        const d = new Date(Number(obj.timestamp));
-       if (!isNaN(d)) metaEl.textContent = d.toLocaleString();
-      }
-      // update reactions
-      renderReactions(obj.id, obj.reactions || {});
-    } else {
-      // if DOM missing, display fresh
-     displayMessage(obj);
-    }
-});
-
 }
 
 // --- Toast helper ---
@@ -457,84 +358,6 @@ function setupGoogleLogin() {
   });
 }
 
-// Typing presence (writes to /typing/{clientId} = {name, ts})
-let typingTimer = null;
-const TYPING_TTL = 1800; // ms to clear after last keystroke
-function setupTypingIndicator() {
-  const typingRef = database.ref('typing');
-  // when someone changes typing map, update UI
-  typingRef.on('value', snap => {
-    const val = snap.val() || {};
-    const names = Object.values(val).map(o => o.name).filter(Boolean);
-    renderTyping(names);
-  });
-
-  // on disconnect cleanup for auth users
-  if (auth && auth.currentUser) {
-    const myRef = typingRef.child(currentClientId());
-    myRef.onDisconnect().remove();
-  }
-
-  // send typing events from input
-  if (!messageInput) return;
-  messageInput.addEventListener('input', () => {
-    sendTypingPresence();
-  });
-}
-
-function sendTypingPresence() {
-  if (!database) return;
-  const id = currentClientId();
-  const ref = database.ref('typing').child(id);
-  const payload = { name: currentDisplayName(), ts: Date.now() };
-  ref.set(payload).catch(() => {});
-  // clear after TTL
-  if (typingTimer) clearTimeout(typingTimer);
-  typingTimer = setTimeout(() => {
-    ref.remove().catch(() => {});
-  }, TYPING_TTL);
-}
-
-function renderTyping(names) {
-  const el = document.getElementById('typingIndicator');
-  if (!el) return;
-  // exclude self
-  const me = currentDisplayName();
-  const others = names.filter(n => n && n !== me);
-  if (others.length === 0) {
-    el.textContent = '';
-    return;
-  }
-  const text = others.length === 1 ? `${others[0]} is typing...` : `${others.join(', ')} are typing...`;
-  el.textContent = text;
-}
-
-function listenForAnnouncements() {
-  const annRef = database.ref('announcements').orderByChild('timestamp').limitToLast(10);
-  annRef.on('value', snap => {
-    const container = document.getElementById('devAnnouncements');
-    const text = document.getElementById('devAnnouncementText');
-    if (!container || !text) return;
-    const val = snap.val();
-    if (!val) {
-      container.classList.remove('show');
-      return;
-    }
-    // pick most recent by timestamp
-    const arr = Object.values(val);
-    arr.sort((a,b)=> (b.timestamp||0)-(a.timestamp||0));
-    const latest = arr[0];
-    text.textContent = latest && latest.text ? latest.text : '(no announcements)';
-    container.classList.add('show');
-    // optional: auto-hide after X ms if latest.expiresAt set
-    if (latest && latest.expiresAt) {
-      const until = latest.expiresAt - Date.now();
-      if (until > 0) setTimeout(()=>container.classList.remove('show'), until);
-    }
-  });
-}
-
-
 // --- Main entrypoint ---
 function main() {
   initFirebase();
@@ -544,8 +367,6 @@ function main() {
   setupUsernameMemory();
   setupGoogleLogin();
   listenForMessages();
-  listenForAnnouncements();
-  setupTypingIndicator();
 }
 
 document.addEventListener("DOMContentLoaded", main);
