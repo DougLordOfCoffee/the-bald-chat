@@ -179,21 +179,19 @@ function writeNewMessage(username, text) {
 
 // --- Display message for channel (DOM id includes channel) ---
 function displayMessageForChannel(message) {
-  // ensure channel attached
   if (!message._channel) message._channel = currentChannelId;
   if (!messagesDiv) {
     console.warn("displayMessageForChannel: messagesDiv missing", message);
     return;
   }
 
-  // remove system placeholder
   const systemEl = messagesDiv.querySelector(".system");
   if (systemEl) systemEl.remove();
 
   const domId = sanitizeChannelMessageId(message._channel, message.id);
   console.log("displayMessageForChannel called for", domId, message);
 
-  // if element exists, update it instead of exiting silently
+  // update if exists
   let wrap = document.getElementById(domId);
   if (wrap) {
     console.log("Element already exists — updating content:", domId);
@@ -235,7 +233,6 @@ function displayMessageForChannel(message) {
     left.appendChild(meta);
     wrap.appendChild(left);
 
-    // delete button
     const actions = document.createElement("div");
     actions.className = "message-actions";
     const deleteBtn = document.createElement("button");
@@ -257,6 +254,7 @@ function displayMessageForChannel(message) {
 
     const wasNearBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 80;
     if (wasNearBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
     console.log("displayMessageForChannel appended:", domId);
   } catch (err) {
     console.error("displayMessageForChannel failed to build DOM:", err, message);
@@ -466,76 +464,72 @@ function listenForChannelMessages(channelId) {
     return;
   }
 
-  console.log("Listening for channel messages on:", channelId);
+  console.log("▶ Listening for channel messages on:", channelId);
   currentChannelMessagesRef = database.ref(`messages/${channelId}`).orderByChild('timestamp').limitToLast(500);
 
-  currentChannelMessagesRef.on("child_added", (snapshot) => {
-    const obj = snapshot.val() || {};
-    obj.id = snapshot.key;
-    obj._channel = channelId;
-    console.log("[child_added]", channelId, "msgId=", obj.id, obj);
-    try {
-      displayMessageForChannel(obj);
-      // log whether element now exists
+  currentChannelMessagesRef.on("child_added",
+    (snapshot) => {
+      const obj = snapshot.val() || {};
+      obj.id = snapshot.key;
+      obj._channel = channelId;
+      console.log("[child_added]", channelId, "msgId=", obj.id, obj);
+      try {
+        displayMessageForChannel(obj);
+        const domId = sanitizeChannelMessageId(channelId, obj.id);
+        console.log("[child_added] DOM exists after append:", !!document.getElementById(domId), domId);
+      } catch (err) {
+        console.error("displayMessageForChannel threw:", err, obj);
+      }
+    },
+    (error) => {
+      console.error("Realtime listener error (child_added):", error);
+      showToast("DB listener error (child_added). Check rules/console.");
+    }
+  );
+
+  currentChannelMessagesRef.on("child_changed",
+    (snapshot) => {
+      const obj = snapshot.val() || {};
+      obj.id = snapshot.key;
+      obj._channel = channelId;
+      console.log("[child_changed]", channelId, "msgId=", obj.id, obj);
       const domId = sanitizeChannelMessageId(channelId, obj.id);
-      console.log("[child_added] appended element:", !!document.getElementById(domId), domId);
-    } catch (err) {
-      console.error("displayMessageForChannel threw:", err, obj);
+      const el = document.getElementById(domId);
+      if (el) {
+        const txt = el.querySelector(".message-text");
+        if (txt) txt.textContent = safeText(obj.text || "");
+        const meta = el.querySelector(".meta");
+        if (meta && obj.timestamp) meta.textContent = new Date(Number(obj.timestamp)).toLocaleString();
+        console.log("[child_changed] updated DOM:", domId);
+      } else {
+        console.log("[child_changed] DOM missing, calling displayMessageForChannel()");
+        displayMessageForChannel(obj);
+      }
+    },
+    (error) => {
+      console.error("Realtime listener error (child_changed):", error);
+      showToast("DB listener error (child_changed). Check rules/console.");
     }
-  });
+  );
 
-  currentChannelMessagesRef.on("child_changed", (snapshot) => {
-    const obj = snapshot.val() || {};
-    obj.id = snapshot.key;
-    obj._channel = channelId;
-    console.log("[child_changed]", channelId, "msgId=", obj.id, obj);
-    const domId = sanitizeChannelMessageId(channelId, obj.id);
-    const el = document.getElementById(domId);
-    if (el) {
-      const txt = el.querySelector(".message-text");
-      if (txt) txt.textContent = safeText(obj.text || "");
-      const meta = el.querySelector(".meta");
-      if (meta && obj.timestamp) meta.textContent = new Date(Number(obj.timestamp)).toLocaleString();
-      console.log("[child_changed] updated DOM:", domId);
-    } else {
-      console.log("[child_changed] DOM missing, calling displayMessageForChannel()");
-      displayMessageForChannel(obj);
+  currentChannelMessagesRef.on("child_removed",
+    (snapshot) => {
+      const domId = sanitizeChannelMessageId(channelId, snapshot.key);
+      const el = document.getElementById(domId);
+      if (el) {
+        el.remove();
+        console.log("[child_removed] removed DOM:", domId);
+      } else {
+        console.log("[child_removed] DOM not found for:", domId);
+      }
+    },
+    (error) => {
+      console.error("Realtime listener error (child_removed):", error);
+      showToast("DB listener error (child_removed). Check rules/console.");
     }
-  });
-
-  currentChannelMessagesRef.on("child_removed", (snapshot) => {
-    const domId = sanitizeChannelMessageId(channelId, snapshot.key);
-    const el = document.getElementById(domId);
-    if (el) {
-      el.remove();
-      console.log("[child_removed] removed DOM:", domId);
-    } else {
-      console.log("[child_removed] DOM not found for:", domId);
-    }
-  });
-
-  currentChannelMessagesRef.on("child_changed", (snapshot) => {
-    const obj = snapshot.val() || {};
-    obj.id = snapshot.key;
-    obj._channel = channelId;
-    const domId = sanitizeChannelMessageId(channelId, obj.id);
-    const el = document.getElementById(domId);
-    if (el) {
-      const txt = el.querySelector(".message-text");
-      if (txt) txt.textContent = safeText(obj.text || "");
-      const meta = el.querySelector(".meta");
-      if (meta && obj.timestamp) meta.textContent = new Date(Number(obj.timestamp)).toLocaleString();
-    } else {
-      displayMessageForChannel(obj);
-    }
-  });
-
-  currentChannelMessagesRef.on("child_removed", (snapshot) => {
-    const domId = sanitizeChannelMessageId(channelId, snapshot.key);
-    const el = document.getElementById(domId);
-    if (el) el.remove();
-  });
+  );
 }
+
 
 // --- Channel creation UI ---
 function setupChannelCreation() {
