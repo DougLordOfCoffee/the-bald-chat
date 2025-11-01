@@ -356,59 +356,59 @@ function setupGoogleLogin() {
 }
 
 // --- Channels: init / render / select / listen ---
-function initChannels() {
+async function initChannels() {
   if (!database) return;
-  channelsRef = database.ref("channels");
+  channelsRef = database.ref('channels');
 
-  // child added
-  channelsRef.orderByChild("timestamp").on("child_added", (snap) => {
-    const ch = snap.val(); ch.id = snap.key;
+  // Step 1: Ensure at least one channel exists
+  const snap = await channelsRef.get();
+  let defaultChannelId;
+  if (!snap.exists()) {
+    // create 'general' if empty
+    const chRef = await channelsRef.push({
+      name: 'general',
+      createdBy: auth.currentUser ? auth.currentUser.uid : 'system',
+      timestamp: Date.now()
+    });
+    defaultChannelId = chRef.key;
+  } else {
+    // pick first existing channel
+    defaultChannelId = Object.keys(snap.val())[0];
+  }
+
+  // Step 2: Render all channels and attach listeners for changes
+  channelsRef.orderByChild('timestamp').on('child_added', (snap) => {
+    const ch = snap.val();
+    ch.id = snap.key;
     renderChannelItem(ch);
-
-    if (!currentChannelId) {
-      // try persisted value
-      const saved = localStorage.getItem("currentChannelId");
-      if (saved && document.querySelector(`[data-channel-id="${saved}"]`)) {
-        selectChannel(saved);
-      } else {
-        selectChannel(ch.id);
-      }
-    }
   });
 
-  // child changed
-  channelsRef.on("child_changed", (snap) => {
-    const ch = snap.val(); ch.id = snap.key;
+  channelsRef.on('child_changed', (snap) => {
+    const ch = snap.val();
+    ch.id = snap.key;
     updateChannelItem(ch);
   });
 
-  // child removed
-  channelsRef.on("child_removed", (snap) => {
+  channelsRef.on('child_removed', (snap) => {
     const id = snap.key;
     const el = document.querySelector(`[data-channel-id="${id}"]`);
     if (el) el.remove();
+
     if (currentChannelId === id) {
-      localStorage.removeItem("currentChannelId");
-      const first = document.querySelector(".channel-item");
-      if (first) selectChannel(first.getAttribute("data-channel-id"));
-      else {
-        currentChannelId = null;
-        clearMessagesView();
-      }
+      localStorage.removeItem('currentChannelId');
+      const first = document.querySelector('.channel-item');
+      if (first) selectChannel(first.getAttribute('data-channel-id'));
+      else clearMessagesView();
     }
   });
 
-  // Ensure a default channel exists
-  channelsRef.once("value").then(snap => {
-    if (!snap.exists()) {
-      const newRef = channelsRef.push();
-      newRef.set({
-        name: "general",
-        createdBy: auth && auth.currentUser ? auth.currentUser.uid : "system",
-        timestamp: Date.now()
-      }).catch(()=>{});
-    }
-  }).catch(()=>{});
+  // Step 3: Select current channel (saved or default)
+  const saved = localStorage.getItem('currentChannelId');
+  if (saved && document.querySelector(`[data-channel-id="${saved}"]`)) {
+    selectChannel(saved);
+  } else {
+    selectChannel(defaultChannelId);
+  }
 }
 
 function renderChannelItem(ch) {
