@@ -230,37 +230,36 @@ body.light {
   :root { /* light variable defaults */ }
 }
 
-/* Toggle container */
+/* Toggle Button */
 .toggle-btn {
-  width: 44px;
-  height: 22px;
-  border-radius: 22px;
-  background: var(--border);
+  width: 48px;
+  height: 24px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.2);
   position: relative;
   cursor: pointer;
-  border: none;
-  padding: 0;
+  transition: background 0.3s;
+  display: flex;
+  align-items: center;
+  padding: 2px;
 }
 
-/* Toggle circle */
 .toggle-btn .toggle-handle {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  background: var(--accent);
   border-radius: 50%;
-  background: var(--text);
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  transition: transform 0.25s ease, background 0.25s ease;
+  transition: transform 0.3s, background 0.3s;
 }
 
-body.light .toggle-btn {
-  background: var(--border);
+/* Light mode toggle change */
+.light .toggle-btn {
+  background: rgba(0,0,0,0.2);
 }
-
-body.light .toggle-btn .toggle-handle {
-  transform: translateX(22px);
-  background: var(--text);
+.light .toggle-btn .toggle-handle {
+  background: var(--accent2);
+  transform: translateX(24px);
 }
 
 .delete-btn {
@@ -277,28 +276,20 @@ body.light .toggle-btn .toggle-handle {
   opacity: 1;
 }
 
-/* Scrollbar */
-#messages {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) var(--background);
-}
-
 #messages::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 #messages::-webkit-scrollbar-track {
-  background: var(--background);
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
 }
 
 #messages::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
+  background: var(--accent);
+  border-radius: 10px;
 }
 
-.top-controls {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+#messages::-webkit-scrollbar-thumb:hover {
+  background: var(--accent2);
 }

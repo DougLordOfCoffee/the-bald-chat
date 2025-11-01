@@ -172,6 +172,13 @@ function displayMessage(message) {
   deleteBtn.title = 'Delete message';
   deleteBtn.setAttribute('aria-label', 'Delete message');
   deleteBtn.innerHTML = "&times;";
+  deleteBtn.style.color = "var(--muted)";
+  deleteBtn.style.fontSize = "18px";
+  deleteBtn.style.padding = "0 6px";
+  deleteBtn.style.transition = "color 0.2s";
+  deleteBtn.onmouseenter = () => deleteBtn.style.color = "var(--accent2)";
+  deleteBtn.onmouseleave = () => deleteBtn.style.color = "var(--muted)";
+
   deleteBtn.className = "delete-btn";
   deleteBtn.addEventListener('click', () => {
     if (!database) return;
