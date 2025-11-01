@@ -325,38 +325,39 @@ if (googleBtn) {
       showToast(isNowLight ? 'Light theme enabled' : 'Dark theme enabled');
     });
   }
-  const uploadBtn = document.getElementById('uploadImageBtn');
-const fileInput = document.getElementById('imageUpload');
 
-uploadBtn.addEventListener('click', () => {
-  fileInput.click();
-});
+    const uploadBtn = document.getElementById('uploadImageBtn');
+    const fileInput = document.getElementById('imageUpload');
 
-fileInput.addEventListener('change', async () => {
-  const file = fileInput.files[0];
-  if (!file) return;
+  uploadBtn.addEventListener('click', () => {
+    fileInput.click();
+  });
 
-  const user = firebase.auth().currentUser;
-  const usernameText = (localUsername || 'Anonymous');
-  const timestamp = Date.now();
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
 
-  // Where to store image:
-  const storageRef = storage.ref(`images/${user ? user.uid : 'anon'}/${timestamp}_${file.name}`);
+    const user = firebase.auth().currentUser;
+    const usernameText = (localUsername || 'Anonymous');
+    const timestamp = Date.now();
 
-  try {
-    await storageRef.put(file);
-    const url = await storageRef.getDownloadURL();
+    // Where to store image:
+    const storageRef = storage.ref(`images/${user ? user.uid : 'anon'}/${timestamp}_${file.name}`);
 
-    writeNewMessageImage(usernameText, url);
-    showToast("Image Sent");
+    try {
+      await storageRef.put(file);
+     const url = await storageRef.getDownloadURL();
 
-  } catch (err) {
-    console.error("Image upload failed:", err);
-    showToast("Upload failed");
-  }
+      writeNewMessageImage(usernameText, url);
+      showToast("Image Sent");
 
-  fileInput.value = "";
-});
+    } catch (err) {
+     console.error("Image upload failed:", err);
+     showToast("Upload failed");
+    }
+
+    fileInput.value = "";
+  });
 
 }
 
