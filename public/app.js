@@ -23,29 +23,27 @@ let themeToggleBtn;
 let googleBtn;
 let localUsername = null;
 let toastTimer = null;
+
 // Channels
 let channelsRef = null;
 let currentChannelId = null;
 let currentChannelMessagesRef = null;
-let currentChannelListeners = {}; // store refs to off() later
-
-// sanitize message id to include channel (prevents collisions)
-function sanitizeChannelMessageId(channelId, messageId) {
-  return sanitizeId((channelId || 'chan') + '_' + (messageId || Date.now()));
-}
-
 
 // --- Helpers ---
 function sanitizeId(key) {
   return "msg_" + String(key).replace(/[^a-zA-Z0-9\-_:.]/g, "_");
 }
-
+function sanitizeChannelMessageId(channelId, messageId) {
+  return sanitizeId((channelId || "chan") + "_" + (messageId || Date.now()));
+}
 function safeText(t) {
   return String(t == null ? "" : t);
 }
-
 function isFirebaseCompatLoaded() {
   return typeof window.firebase === "object" && typeof window.firebase.initializeApp === "function";
+}
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 // --- Firebase init ---
@@ -101,15 +99,18 @@ function setupUsernameMemory() {
   auth.onAuthStateChanged(async (user) => {
     if (!user) return;
     const uid = user.uid;
-    const snap = await usersRef.child(uid).child("username").get();
-    if (snap.exists()) {
-      localUsername = snap.val();
-      usernameInput.value = localUsername;
-      localStorage.setItem("username", localUsername);
-    } else if (localStorage.getItem("username")) {
-      // If they have a local username and no DB entry, don't overwrite DB automatically
-      localUsername = localStorage.getItem("username");
-      usernameInput.value = localUsername;
+    try {
+      const snap = await usersRef.child(uid).child("username").once("value");
+      if (snap.exists()) {
+        localUsername = snap.val();
+        usernameInput.value = localUsername;
+        localStorage.setItem("username", localUsername);
+      } else if (localStorage.getItem("username")) {
+        localUsername = localStorage.getItem("username");
+        usernameInput.value = localUsername;
+      }
+    } catch (e) {
+      console.warn("Failed to load username:", e);
     }
   });
 
@@ -119,29 +120,30 @@ function setupUsernameMemory() {
     if (!newName) return;
 
     const key = newName.toLowerCase();
-    const ownerSnap = await usernamesRef.child(key).get();
+    try {
+      const ownerSnap = await usernamesRef.child(key).once("value");
+      if (ownerSnap.exists() && ownerSnap.val() !== (user ? user.uid : null)) {
+        showToast("Name already taken.");
+        usernameInput.value = localUsername || "";
+        return;
+      }
 
-    // Name taken by other UID
-    if (ownerSnap.exists() && ownerSnap.val() !== (user ? user.uid : null)) {
-      showToast("Name already taken.");
-      usernameInput.value = localUsername || "";
-      return;
+      if (localUsername && user) {
+        await usernamesRef.child(localUsername.toLowerCase()).remove().catch(()=>{});
+      }
+
+      if (user) {
+        await usernamesRef.child(key).set(user.uid);
+        await database.ref("users").child(user.uid).child("username").set(newName);
+      }
+
+      localUsername = newName;
+      localStorage.setItem("username", newName);
+      showToast("Username updated!");
+    } catch (err) {
+      console.error("saveUsername failed", err);
+      showToast("Failed to save username.");
     }
-
-    // Free old name if present and owned by this user
-    if (localUsername && user) {
-      await usernamesRef.child(localUsername.toLowerCase()).remove().catch(() => {});
-    }
-
-    // Update DB only if user is signed in
-    if (user) {
-      await usernamesRef.child(key).set(user.uid);
-      await database.ref("users").child(user.uid).child("username").set(newName);
-    }
-
-    localUsername = newName;
-    localStorage.setItem("username", newName);
-    showToast("Username updated!");
   }
 
   usernameInput.addEventListener("blur", saveUsername);
@@ -158,29 +160,32 @@ function setupUsernameMemory() {
   });
 }
 
-// --- Write message to DB ---
+// --- Write message (channel-aware) ---
 function writeNewMessage(username, text) {
   if (!database) return console.error("Database not initialized.");
-  const newMessageRef = database.ref("messages").push();
-  newMessageRef
-    .set({
-      username: username,
-      uid: auth.currentUser ? auth.currentUser.uid : null,
-      text: text,
-      timestamp: firebase.database.ServerValue.TIMESTAMP,
-    })
-    .catch((err) => console.error("Write failed", err));
+  if (!currentChannelId) {
+    showToast("No channel selected");
+    return;
+  }
+  const ref = database.ref(`messages/${currentChannelId}`);
+  const pushed = ref.push();
+  pushed.set({
+    username: username,
+    uid: auth && auth.currentUser ? auth.currentUser.uid : null,
+    text: text,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  }).catch((err) => console.error("Write failed", err));
 }
 
-// --- Display message ---
-function displayMessage(message) {
+// --- Display message for channel (DOM id includes channel) ---
+function displayMessageForChannel(message) {
+  if (!message._channel) message._channel = currentChannelId;
   if (!messagesDiv) return;
 
-  // remove system placeholder if present
   const systemEl = messagesDiv.querySelector(".system");
   if (systemEl) systemEl.remove();
 
-  const domId = sanitizeId(message.id || Date.now());
+  const domId = sanitizeChannelMessageId(message._channel, message.id);
   if (document.getElementById(domId)) return;
 
   const wrap = document.createElement("div");
@@ -194,11 +199,7 @@ function displayMessage(message) {
 
   const uname = document.createElement("span");
   uname.className = "username";
-  if (message.uid === ADMIN_UID) {
-    uname.textContent = safeText(message.username) + " ⭐";
-  } else {
-    uname.textContent = safeText(message.username || "Anonymous");
-  }
+  uname.textContent = message.uid === ADMIN_UID ? (safeText(message.username || "Anonymous") + " ⭐") : safeText(message.username || "Anonymous");
 
   const textEl = document.createElement("div");
   textEl.className = "message-text";
@@ -208,50 +209,41 @@ function displayMessage(message) {
   meta.className = "meta";
   if (message.timestamp) {
     const date = new Date(Number(message.timestamp));
-    if (!isNaN(date)) {
-      meta.textContent = date.toLocaleString();
-      meta.title = date.toISOString();
-    }
+    if (!isNaN(date)) { meta.textContent = date.toLocaleString(); meta.title = date.toISOString(); }
   }
 
   left.appendChild(uname);
   left.appendChild(textEl);
   left.appendChild(meta);
-
   wrap.appendChild(left);
 
   // actions (delete)
   const actions = document.createElement("div");
   actions.className = "message-actions";
-
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "delete-btn";
-  deleteBtn.type = "button";
-  deleteBtn.title = "Delete message";
-  deleteBtn.setAttribute("aria-label", "Delete message");
   deleteBtn.innerHTML = "&times;";
   deleteBtn.addEventListener("click", () => {
     if (!database) return;
-    if (confirm("Delete this message?")) {
-      database.ref("messages").child(message.id).remove().catch(console.error);
-    }
+    if (!confirm("Delete this message?")) return;
+    database.ref(`messages/${message._channel}`).child(message.id).remove().catch(console.error);
   });
 
-  const currentUser = auth.currentUser;
-  if (currentUser && (message.uid === currentUser.uid || currentUser.uid === ADMIN_UID)) {
+  const currentUserId = auth && auth.currentUser ? auth.currentUser.uid : null;
+  if (currentUserId && (message.uid === currentUserId || currentUserId === ADMIN_UID)) {
     actions.appendChild(deleteBtn);
   }
 
   wrap.appendChild(actions);
-
-  const wasNearBottom =
-    messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 80;
   messagesDiv.appendChild(wrap);
+
+  const wasNearBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 80;
   if (wasNearBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-// --- Event listeners ---
+// --- Event listeners (send / enter / theme) ---
 function setupEventListeners() {
+  sendMessageBtn = document.getElementById("sendMessage"); // re-get (safe)
   if (sendMessageBtn && messageInput) {
     sendMessageBtn.addEventListener("click", () => {
       const messageText = messageInput.value.trim();
@@ -277,13 +269,11 @@ function setupEventListeners() {
   if (themeToggleBtn) {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "light") document.body.classList.add("light");
-
     const updateThemeButton = () => {
       const isLight = document.body.classList.contains("light");
       themeToggleBtn.setAttribute("aria-pressed", String(isLight));
     };
     updateThemeButton();
-
     themeToggleBtn.addEventListener("click", () => {
       document.body.classList.toggle("light");
       const isNowLight = document.body.classList.contains("light");
@@ -301,7 +291,6 @@ function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");
   toast.setAttribute("aria-hidden", "false");
-
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toast.classList.remove("show");
@@ -312,14 +301,13 @@ function showToast(message) {
 // --- Google Sign-in UI + logic ---
 function setupGoogleLogin() {
   if (!googleBtn) return;
-
   googleBtn.addEventListener("click", async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     try {
       await auth.signInWithPopup(provider);
     } catch (err) {
       if (err.code === "auth/popup-closed-by-user") {
-        // user canceled popup — ignore silently
+        // silent
       } else {
         console.error("Google Sign-in failed:", err);
         showToast("Sign-in canceled.");
@@ -327,43 +315,38 @@ function setupGoogleLogin() {
     }
   });
 
-  // reflect auth state in button text/glow
   auth.onAuthStateChanged((user) => {
     if (!googleBtn) return;
     if (user) {
       googleBtn.classList.add("signed-in");
-      googleBtn.textContent = `Signed in`;
-      // Try to load username if available
-      database
-        .ref(`users/${user.uid}/username`)
-        .get()
-        .then((snap) => {
-          if (snap.exists()) {
-            localUsername = snap.val();
-            usernameInput && (usernameInput.value = localUsername);
-            localStorage.setItem("username", localUsername);
-          }
-        })
-        .catch(() => {});
+      googleBtn.textContent = "Signed in";
+      database.ref(`users/${user.uid}/username`).once("value").then(snap => {
+        if (snap.exists()) {
+          localUsername = snap.val();
+          usernameInput && (usernameInput.value = localUsername);
+          localStorage.setItem("username", localUsername);
+        }
+      }).catch(()=>{});
     } else {
       googleBtn.classList.remove("signed-in");
-      googleBtn.textContent = `Sign in with Google`;
+      googleBtn.textContent = "Sign in with Google";
     }
   });
 }
 
+// --- Channels: init / render / select / listen ---
 function initChannels() {
   if (!database) return;
-  channelsRef = database.ref('channels');
+  channelsRef = database.ref("channels");
 
-  // Render existing channels and listen for updates
-  channelsRef.orderByChild('timestamp').on('child_added', (snap) => {
-    const ch = snap.val();
-    ch.id = snap.key;
+  // child added
+  channelsRef.orderByChild("timestamp").on("child_added", (snap) => {
+    const ch = snap.val(); ch.id = snap.key;
     renderChannelItem(ch);
-    // if no channel selected yet, pick default (persisted or first)
+
     if (!currentChannelId) {
-      const saved = localStorage.getItem('currentChannelId');
+      // try persisted value
+      const saved = localStorage.getItem("currentChannelId");
       if (saved && document.querySelector(`[data-channel-id="${saved}"]`)) {
         selectChannel(saved);
       } else {
@@ -372,21 +355,21 @@ function initChannels() {
     }
   });
 
-  channelsRef.on('child_changed', (snap) => {
+  // child changed
+  channelsRef.on("child_changed", (snap) => {
     const ch = snap.val(); ch.id = snap.key;
     updateChannelItem(ch);
   });
 
-  channelsRef.on('child_removed', (snap) => {
+  // child removed
+  channelsRef.on("child_removed", (snap) => {
     const id = snap.key;
     const el = document.querySelector(`[data-channel-id="${id}"]`);
     if (el) el.remove();
-    // if we removed the current channel, pick another
     if (currentChannelId === id) {
-      localStorage.removeItem('currentChannelId');
-      // pick first available
-      const first = document.querySelector('.channel-item');
-      if (first) selectChannel(first.getAttribute('data-channel-id'));
+      localStorage.removeItem("currentChannelId");
+      const first = document.querySelector(".channel-item");
+      if (first) selectChannel(first.getAttribute("data-channel-id"));
       else {
         currentChannelId = null;
         clearMessagesView();
@@ -394,31 +377,32 @@ function initChannels() {
     }
   });
 
-  // Create default channel if none exist (once)
-  channelsRef.get().then(snap => {
+  // Ensure a default channel exists
+  channelsRef.once("value").then(snap => {
     if (!snap.exists()) {
-      channelsRef.push({
-        name: 'general',
-        createdBy: auth.currentUser ? auth.currentUser.uid : 'system',
+      const newRef = channelsRef.push();
+      newRef.set({
+        name: "general",
+        createdBy: auth && auth.currentUser ? auth.currentUser.uid : "system",
         timestamp: Date.now()
-      });
+      }).catch(()=>{});
     }
   }).catch(()=>{});
 }
 
 function renderChannelItem(ch) {
-  const list = document.getElementById('channelList');
+  const list = document.getElementById("channelList");
   if (!list) return;
-  if (document.querySelector(`[data-channel-id="${ch.id}"]`)) return; // already exists
+  if (document.querySelector(`[data-channel-id="${ch.id}"]`)) return;
 
-  const item = document.createElement('div');
-  item.className = 'channel-item';
-  item.setAttribute('data-channel-id', ch.id);
+  const item = document.createElement("div");
+  item.className = "channel-item";
+  item.setAttribute("data-channel-id", ch.id);
   item.tabIndex = 0;
-  item.innerHTML = `<span># ${escapeHtml(ch.name)}</span><span class="meta">${ch.memberCount ? ch.memberCount : ''}</span>`;
+  item.innerHTML = `<span># ${escapeHtml(ch.name)}</span><span class="meta">${ch.memberCount ? ch.memberCount : ""}</span>`;
 
-  item.addEventListener('click', () => selectChannel(ch.id));
-  item.addEventListener('keydown', (e) => { if (e.key === 'Enter') selectChannel(ch.id); });
+  item.addEventListener("click", () => selectChannel(ch.id));
+  item.addEventListener("keydown", (e) => { if (e.key === "Enter") selectChannel(ch.id); });
 
   list.prepend(item);
 }
@@ -426,33 +410,25 @@ function renderChannelItem(ch) {
 function updateChannelItem(ch) {
   const el = document.querySelector(`[data-channel-id="${ch.id}"]`);
   if (!el) return;
-  const meta = el.querySelector('.meta');
-  if (meta) meta.textContent = ch.memberCount || '';
+  const meta = el.querySelector(".meta");
+  if (meta) meta.textContent = ch.memberCount || "";
 }
-
-function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function selectChannel(channelId) {
   if (!channelId) return;
   if (currentChannelId === channelId) return;
 
-  // visual active
-  document.querySelectorAll('.channel-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-channel-id') === channelId));
+  document.querySelectorAll(".channel-item").forEach(i => i.classList.toggle("active", i.getAttribute("data-channel-id") === channelId));
 
-  // persist
   currentChannelId = channelId;
-  localStorage.setItem('currentChannelId', channelId);
-
-  // clear current messages DOM
+  localStorage.setItem("currentChannelId", channelId);
   clearMessagesView();
 
-  // stop old listeners
   if (currentChannelMessagesRef) {
     try { currentChannelMessagesRef.off(); } catch (e) {}
     currentChannelMessagesRef = null;
   }
 
-  // listen to messages for this channel
   listenForChannelMessages(channelId);
 }
 
@@ -463,156 +439,75 @@ function clearMessagesView() {
 
 function listenForChannelMessages(channelId) {
   if (!database || !channelId) return;
-  currentChannelMessagesRef = database.ref(`messages/${channelId}`).orderByChild('timestamp').limitToLast(500);
+  currentChannelMessagesRef = database.ref(`messages/${channelId}`).orderByChild("timestamp").limitToLast(500);
 
-  currentChannelMessagesRef.on('child_added', (snapshot) => {
+  currentChannelMessagesRef.on("child_added", (snapshot) => {
     const obj = snapshot.val() || {};
     obj.id = snapshot.key;
     obj._channel = channelId;
     displayMessageForChannel(obj);
   });
 
-  currentChannelMessagesRef.on('child_changed', (snapshot) => {
+  currentChannelMessagesRef.on("child_changed", (snapshot) => {
     const obj = snapshot.val() || {};
     obj.id = snapshot.key;
     obj._channel = channelId;
-    // update existing DOM
     const domId = sanitizeChannelMessageId(channelId, obj.id);
     const el = document.getElementById(domId);
     if (el) {
-      const txt = el.querySelector('.message-text');
-      if (txt) txt.textContent = safeText(obj.text || '');
-      const meta = el.querySelector('.meta');
+      const txt = el.querySelector(".message-text");
+      if (txt) txt.textContent = safeText(obj.text || "");
+      const meta = el.querySelector(".meta");
       if (meta && obj.timestamp) meta.textContent = new Date(Number(obj.timestamp)).toLocaleString();
-      // reactions update (if using)
-      if (typeof renderReactions === 'function') renderReactions(obj.id, obj.reactions || {});
     } else {
       displayMessageForChannel(obj);
     }
   });
 
-  currentChannelMessagesRef.on('child_removed', (snapshot) => {
+  currentChannelMessagesRef.on("child_removed", (snapshot) => {
     const domId = sanitizeChannelMessageId(channelId, snapshot.key);
     const el = document.getElementById(domId);
     if (el) el.remove();
   });
 }
 
-function displayMessageForChannel(message) {
-  // message._channel must be present
-  if (!message._channel) message._channel = currentChannelId;
-  // modify displayMessage behavior: use sanitizeChannelMessageId
-  if (!messagesDiv) return;
-
-  // remove system placeholder
-  const systemEl = messagesDiv.querySelector('.system');
-  if (systemEl) systemEl.remove();
-
-  const domId = sanitizeChannelMessageId(message._channel, message.id);
-  if (document.getElementById(domId)) return;
-
-  // Build DOM similar to your existing displayMessage but using domId
-  const wrap = document.createElement('div');
-  wrap.id = domId;
-  wrap.classList.add('message');
-  if ((message.username || '') === (localUsername || '')) wrap.classList.add('mine');
-  wrap.setAttribute('role', 'article');
-
-  const left = document.createElement('div');
-  left.className = 'message-left';
-
-  const uname = document.createElement('span');
-  uname.className = 'username';
-  uname.textContent = message.uid === ADMIN_UID ? (safeText(message.username || 'Anonymous') + ' ⭐') : safeText(message.username || 'Anonymous');
-
-  const textEl = document.createElement('div');
-  textEl.className = 'message-text';
-  textEl.textContent = safeText(message.text || '');
-
-  const meta = document.createElement('span');
-  meta.className = 'meta';
-  if (message.timestamp) {
-    const date = new Date(Number(message.timestamp));
-    if (!isNaN(date)) { meta.textContent = date.toLocaleString(); meta.title = date.toISOString(); }
-  }
-
-  left.appendChild(uname);
-  left.appendChild(textEl);
-  left.appendChild(meta);
-
-  wrap.appendChild(left);
-
-  // delete button logic (owner/admin)
-  const actions = document.createElement('div');
-  actions.className = 'message-actions';
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'delete-btn';
-  deleteBtn.innerHTML = '&times;';
-  deleteBtn.addEventListener('click', () => {
-    if (!database) return;
-    if (!confirm('Delete this message?')) return;
-    database.ref(`messages/${message._channel}`).child(message.id).remove().catch(console.error);
-  });
-
-  const currentUserId = auth.currentUser ? auth.currentUser.uid : null;
-  if (currentUserId && (message.uid === currentUserId || currentUserId === ADMIN_UID)) {
-    actions.appendChild(deleteBtn);
-  }
-
-  wrap.appendChild(actions);
-  messagesDiv.appendChild(wrap);
-
-  // scroll
-  const wasNearBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 80;
-  if (wasNearBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-function writeNewMessage(username, text) {
-  if (!database) return console.error('Database not initialized.');
-  if (!currentChannelId) {
-    showToast('No channel selected');
-    return;
-  }
-  database.ref(`messages/${currentChannelId}`).push().set({
-    username: username,
-    uid: auth.currentUser ? auth.currentUser.uid : null,
-    text: text,
-    timestamp: firebase.database.ServerValue.TIMESTAMP
-  }).catch(err => console.error('Write failed', err));
-}
-
+// --- Channel creation UI ---
 function setupChannelCreation() {
-  const createBtn = document.getElementById('createChannelBtn');
-  const input = document.getElementById('newChannelName');
-  if (!createBtn || !input) return;
+  const createBtn = document.getElementById("createChannelBtn");
+  const input = document.getElementById("newChannelName");
+  if (!createBtn || !input || !channelsRef) return;
 
-  createBtn.addEventListener('click', async () => {
-    const name = (input.value || '').trim();
-    if (!name) return showToast('Enter a channel name');
-    const key = name.toLowerCase();
-    // enforce uniqueness by name (scan existing channels)
-    const snap = await channelsRef.orderByChild('name').equalTo(name).get();
-    if (snap.exists()) {
-      showToast('Channel name already exists');
-      return;
+  createBtn.addEventListener("click", async () => {
+    const name = (input.value || "").trim();
+    if (!name) return showToast("Enter a channel name");
+    // uniqueness: check existing channels by name
+    try {
+      const snap = await channelsRef.orderByChild("name").equalTo(name).once("value");
+      if (snap.exists()) {
+        showToast("Channel name already exists");
+        return;
+      }
+      const newRef = channelsRef.push();
+      await newRef.set({
+        name: name,
+        createdBy: auth && auth.currentUser ? auth.currentUser.uid : "anon",
+        timestamp: Date.now()
+      });
+      input.value = "";
+      selectChannel(newRef.key);
+    } catch (err) {
+      console.error("create channel failed", err);
+      showToast("Failed to create channel");
     }
-    const ch = await channelsRef.push({
-      name: name,
-      createdBy: auth.currentUser ? auth.currentUser.uid : 'anon',
-      timestamp: Date.now()
-    });
-    input.value = '';
-    selectChannel(ch.key);
   });
 
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') createBtn.click(); });
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") createBtn.click(); });
 }
-
 
 // --- Main entrypoint ---
 function main() {
   initFirebase();
-  getDOMElements();    // must run before auth UI updates
+  getDOMElements();
   setAppHeight();
   setupEventListeners();
   setupUsernameMemory();
