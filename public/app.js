@@ -513,8 +513,6 @@ function listenForChannelMessages(channelId) {
       console.log("[child_removed] DOM not found for:", domId);
     }
   });
-}
-
 
   currentChannelMessagesRef.on("child_changed", (snapshot) => {
     const obj = snapshot.val() || {};
