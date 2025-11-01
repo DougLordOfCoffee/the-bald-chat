@@ -7,7 +7,8 @@ const firebaseConfig = {
   messagingSenderId: "831148484483",
   appId: "1:831148484483:web:23747c98adcd6e989db8b6",
   databaseURL: "https://the-bald-chat-default-rtdb.firebaseio.com"
-
+}
+const ADMIN_UID = "shELHHG7NJPJqQ0aRb7NR3sPhpJ3"; // MY ID and admin user. so me. HAHA. yeah fuck you cunt.
 // --- Global refs ---
 let database;
 let usernameInput, messageInput, sendMessageBtn, messagesDiv, themeToggleBtn;
