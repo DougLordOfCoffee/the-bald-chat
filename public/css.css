@@ -259,3 +259,36 @@ body.light {
 }
 #googleBtn:hover { background: #1f1f1f; border-color: #777; }
 #googleBtn.signed-in { border-color: #00ff9d; box-shadow: 0 0 12px #00ff9d88; color: #00ff9d; }
+
+/* Reactions UI under messages */
+.message-actions { display:flex; align-items:center; gap:8px; margin-left:8px; }
+.reactions { display:flex; gap:6px; align-items:center; }
+.reaction-btn {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 8px;
+  border-radius:999px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text);
+  transition: transform .12s, background .12s;
+}
+.reaction-btn:hover { transform: translateY(-2px); }
+.reaction-btn.active {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  color: white;
+  box-shadow: 0 6px 18px rgba(155,92,246,0.12);
+}
+
+/* Small count bubble */
+.reaction-count { font-weight:700; font-size:0.82rem; }
+
+/* Typing indicator */
+#typingIndicator { color: var(--muted); padding: 6px 0; font-style: italic; min-height: 20px; }
+
+/* DEV Announcement panel */
+#devAnnouncements { background: rgba(255,255,255,0.02); border-radius:8px; border:1px solid rgba(255,255,255,0.04); }
+#devAnnouncements.show { display:block; }
