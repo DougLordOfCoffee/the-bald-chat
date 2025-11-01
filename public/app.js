@@ -190,7 +190,7 @@ function displayMessage(message) {
   const uname = document.createElement('span');
   uname.className = 'username';
   if (message.uid === ADMIN_UID) {
-   u name.textContent = safeText(message.username) + " ⭐";
+   uname.textContent = safeText(message.username) + " ⭐";
   } else {
    uname.textContent = safeText(message.username || 'Anonymous');
   }
