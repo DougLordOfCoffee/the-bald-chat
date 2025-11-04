@@ -60,11 +60,13 @@ body {
   transition: transform 0.35s ease;
   transform: translateX(0);
 }
+
 .side.collapsed {
   width: 0;
   opacity: 0;
   pointer-events: none;
   padding-left: 0;
+  transform: translateX(320px);
 }
 
 .sidebar-btn {
