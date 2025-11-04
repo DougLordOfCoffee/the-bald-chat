@@ -292,11 +292,17 @@ function selectChannel(channelId) {
   currentChannelId = channelId;
   localStorage.setItem("currentChannelId", channelId);
 
-  document.querySelectorAll(".channel-item").forEach(i => i.classList.toggle("active", i.getAttribute("data-channel-id") === channelId));
+  document.querySelectorAll(".channel-item").forEach(i =>
+    i.classList.toggle("active", i.getAttribute("data-channel-id") === channelId)
+  );
 
   if (currentChannelMessagesRef) currentChannelMessagesRef.off();
-  listenForChannelMessages(channelId);
+
+  // ✅ Clear BEFORE listening so messages can render
   clearMessagesView();
+
+  // ✅ Now messages will show correctly
+  listenForChannelMessages(channelId);
 }
 
 function listenForChannelMessages(channelId) {
