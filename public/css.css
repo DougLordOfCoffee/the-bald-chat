@@ -60,13 +60,11 @@ body {
   transition: transform 0.35s ease;
   transform: translateX(0);
 }
-
 .side.collapsed {
   width: 0;
   opacity: 0;
   pointer-events: none;
   padding-left: 0;
-  transform: translateX(320px);
 }
 
 .sidebar-btn {
@@ -80,3 +78,29 @@ body {
 }
 .sidebar-btn:hover { background: rgba(255,255,255,0.12); }
 .sidebar-btn:active { transform: scale(0.95); }
+
+
+/* --- Neon Edge Message Style (Style C) --- */
+#messages .message {
+  position: relative;
+  padding: 10px 14px;
+  border-radius: 8px;
+  width: fit-content;
+  max-width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(162,119,255,0.4);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 12px rgba(162,119,255,0.45);
+}
+
+#messages .mine {
+  align-self: flex-end;
+  background: rgba(162,119,255,0.12);
+  border-color: rgba(162,119,255,0.8);
+  box-shadow: 0 0 14px rgba(162,119,255,0.9);
+}
+
+#messages .message:hover {
+  box-shadow: 0 0 18px rgba(162,119,255,1);
+  transition: 0.15s;
+}
