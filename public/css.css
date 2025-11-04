@@ -19,18 +19,20 @@ body {
 }
 
 .app {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 28px;
-  width: 100%;
-  max-width: 1600px;
+  display: flex;
+  flex-direction: row;
+  width: 100vw;
+  height: 100vh;
   padding: 28px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .panel {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-width: 0;
   gap: 16px;
 }
 
@@ -50,9 +52,13 @@ body {
 
 .side {
   width: 320px;
+  flex-shrink: 0;
   border-left: 1px solid var(--border);
   padding-left: 20px;
-  transition: width 0.25s ease, opacity 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.35s ease;
+  transform: translateX(0);
 }
 .side.collapsed {
   width: 0;
