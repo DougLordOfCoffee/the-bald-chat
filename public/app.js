@@ -492,39 +492,31 @@
       }
     };
 
-document.getElementById("toggleSidebar").addEventListener("click", () => {
-  document.querySelector(".side").classList.toggle("collapsed");
+  function setupSidebarToggle() {
+    const btn = document.getElementById("toggleSidebar");
+    const side = document.querySelector(".side");
+    if (!btn || !side) return;
+    btn.addEventListener("click", () => {
+      side.classList.toggle("collapsed");
+    });
+  }
+
 });
 
   // --- STARTUP ---
-  function main() {
-    initFirebase();
-    getDOMElements();
-    scheduleSetAppHeight();
-    setupThemeToggle();
+function main() {
+  initFirebase();
+  getDOMElements();
+  scheduleSetAppHeight();
+  setupThemeToggle();
+  setupSidebarToggle();  // ✅ FIXED
 
-    // require firebase before continuing
-    if (!database || !auth) {
-      console.error("Firebase not available - aborting further init.");
-      return;
-    }
+  if (!database || !auth) return;
 
-    // auth listener (single consolidated)
-    auth.onAuthStateChanged(user => {
-      handleAuthState(user);
-    });
-
-    setupUsernameMemory();
-    setupSendMessage();
-    setupGoogleLogin();
-    initChannels();
-    setupChannelCreation();
-  }
-
-  document.getElementById("toggleSidebar").addEventListener("click", () => {
-  document.querySelector(".side").classList.toggle("collapsed");
-});
-
-
-  document.addEventListener("DOMContentLoaded", main);
-})();
+  auth.onAuthStateChanged(user => handleAuthState(user));
+  setupUsernameMemory();
+  setupSendMessage();
+  setupGoogleLogin();
+  initChannels();
+  setupChannelCreation();
+}
