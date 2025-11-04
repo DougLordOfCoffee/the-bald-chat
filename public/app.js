@@ -386,6 +386,85 @@ function setupChannelCreation() {
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") create(); });
 }
 
+// ---------- DEBUGGED writeNewMessage ----------
+function writeNewMessage(username, text) {
+  if (!database) { console.error("DB not initialized in writeNewMessage"); return; }
+
+  // Defensive checks
+  if (!currentChannelId || currentChannelId === "null" || currentChannelId === "undefined") {
+    console.error("writeNewMessage: invalid currentChannelId:", currentChannelId);
+    // fallback
+    const saved = localStorage.getItem("currentChannelId");
+    console.warn("Falling back to saved channelId:", saved);
+    currentChannelId = saved || "general";
+    console.warn("Using channel:", currentChannelId);
+  }
+
+  const path = `messages/${currentChannelId}`;
+  const payload = {
+    username: username || localUsername || "Anonymous",
+    uid: auth && auth.currentUser ? auth.currentUser.uid : null,
+    text,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  };
+
+  console.log("writeNewMessage -> writing to", path, payload);
+  const ref = database.ref(path);
+  ref.push(payload)
+    .then(() => console.log("writeNewMessage -> write SUCCESS"))
+    .catch(err => console.error("writeNewMessage -> write ERROR:", err));
+}
+
+// ---------- DEBUGGED selectChannel ----------
+function selectChannel(channelId) {
+  console.log("selectChannel called with:", channelId, "currentChannelId before:", currentChannelId);
+  if (!channelId) { console.error("selectChannel aborted: falsy channelId"); return; }
+  if (currentChannelId === channelId) { console.log("selectChannel: already selected"); return; }
+
+  currentChannelId = channelId;
+  localStorage.setItem("currentChannelId", channelId);
+
+  document.querySelectorAll(".channel-item").forEach(i => i.classList.toggle("active", i.getAttribute("data-channel-id") === channelId));
+
+  if (currentChannelMessagesRef) {
+    try { currentChannelMessagesRef.off(); } catch (e) { console.warn("Error turning off previous ref", e); }
+  }
+  clearMessagesView();
+  listenForChannelMessages(channelId);
+  console.log("selectChannel -> now listening for channel:", channelId);
+}
+
+// ---------- DEBUGGED listenForChannelMessages ----------
+function listenForChannelMessages(channelId) {
+  console.log("listenForChannelMessages called for:", channelId);
+  if (!database || !channelId) { console.error("listenForChannelMessages aborted; missing database or channelId:", database, channelId); return; }
+
+  if (currentChannelMessagesRef) {
+    try { currentChannelMessagesRef.off(); } catch (e) { console.warn("Error off() prev ref:", e); }
+  }
+
+  currentChannelMessagesRef = database.ref(`messages/${channelId}`).orderByChild('timestamp').limitToLast(500);
+
+  currentChannelMessagesRef.on("child_added", snap => {
+    console.log("child_added -> channel:", channelId, "key:", snap.key, "val:", snap.val());
+    const msg = snap.val(); msg.id = snap.key; msg._channel = channelId;
+    displayMessageForChannel(msg);
+  });
+  currentChannelMessagesRef.on("child_changed", snap => {
+    console.log("child_changed -> channel:", channelId, "key:", snap.key, "val:", snap.val());
+    const msg = snap.val(); msg.id = snap.key; msg._channel = channelId;
+    displayMessageForChannel(msg);
+  });
+  currentChannelMessagesRef.on("child_removed", snap => {
+    console.log("child_removed -> channel:", channelId, "key:", snap.key);
+    const el = document.getElementById(sanitizeChannelMessageId(channelId, snap.key));
+    if (el) el.remove();
+  });
+
+  console.log("listenForChannelMessages -> set up listeners for", channelId);
+}
+
+
 // =====================
 // --- ENTRY POINT ---
 // =====================
