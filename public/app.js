@@ -501,7 +501,7 @@
     });
   }
 
-});
+};
 
   // --- STARTUP ---
 function main() {
