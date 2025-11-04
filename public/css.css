@@ -34,22 +34,19 @@ body {
   min-height: 100vh;
   display: flex;
   align-items: stretch;
-  justify-content: center;
-  padding: 28px;
+  justify-content: flex-start;
+  padding: 0;
   box-sizing: border-box;
 }
 
 /* .app grid */
+
 .app {
-  min-height: calc(100vh - 56px);
-  display: grid;
-  /* The original was: grid-template-columns: 1fr 340px; 
-     This change ensures the first column (Chat Panel) has a minimum width of 550px 
-     before letting it take up all available fractional space (1fr). 
-     The side panel remains fixed at 340px.
-  */
-  grid-template-columns: minmax(550px, 1fr) 340px;
-  gap: 28px;
+  width: 100%;            /* make the layout expand full width */
+  max-width: 1600px;      /* optional, keeps it from getting TOO wide */
+  margin: 0 auto;         /* keeps it nicely centered overall */
+  padding: 28px;          /* move your padding here */
+  box-sizing: border-box;
 }
 
 .panel { display: flex; flex-direction: column; }
