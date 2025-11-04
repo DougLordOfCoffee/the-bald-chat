@@ -492,9 +492,9 @@
       }
     };
 
-    createBtn.addEventListener("click", create);
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); create(); } });
-  }
+document.getElementById("toggleSidebar").addEventListener("click", () => {
+  document.querySelector(".side").classList.toggle("collapsed");
+});
 
   // --- STARTUP ---
   function main() {
