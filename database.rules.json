@@ -2,28 +2,22 @@
   "rules": {
     "channels": {
       ".read": true,
-      ".write": true,
-      ".indexOn": ["timestamp"]
+      ".write": true
     },
 
     "messages": {
       "$channelId": {
         "$messageId": {
           ".read": true,
-          ".write": "
-            (!data.exists() && newData.exists()) ||
-            (data.exists() && auth != null && auth.uid === 'shELHHG7NJPJqQ0aRb7NR3sPhpJ3')
-          ",
-          ".indexOn": ["timestamp"]
+          ".write": true,
+          ".validate": "(newData.exists()) || (auth != null && auth.uid === 'shELHHG7NJPJqQ0aRb7NR3sPhpJ3')"
         }
       }
     },
 
     "users": {
-      "$uid": {
-        ".read": true,
-        ".write": true
-      }
+      ".read": true,
+      ".write": true
     },
 
     "usernames": {
