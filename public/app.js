@@ -521,5 +521,10 @@
     setupChannelCreation();
   }
 
+  document.getElementById("toggleSidebar").addEventListener("click", () => {
+  document.querySelector(".side").classList.toggle("collapsed");
+});
+
+
   document.addEventListener("DOMContentLoaded", main);
 })();
