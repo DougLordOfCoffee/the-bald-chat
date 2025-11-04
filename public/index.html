@@ -6,38 +6,33 @@
   <title>The Dome</title>
 
   <!-- Favicon -->
-  <link rel="icon" href="Favicon.png" type="image/png" />
+  <link rel="icon" href="Favicon.png" type="image/png">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css.css" />
+  <link rel="stylesheet" href="css.css">
 
-  <!-- Firebase -->
+  <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
 
-  <!-- App Logic -->
+  <!-- App -->
   <script src="app.js" defer></script>
 </head>
 
 <body>
   <div class="app">
-
     <!-- CHAT PANEL -->
-    <div class="panel">
-
+    <div class="panel" style="grid-column:1">
       <header class="title">
-        <div class="logo">
-          <img src="Favicon.png" alt="Logo" />
-        </div>
-
+        <div class="logo"><img src="Favicon.png" alt="Logo" width="44" height="44"></div>
         <div>
           <h1>Main Chat</h1>
           <p>Open Chat • Owned by Doug</p>
         </div>
 
-        <div class="top-controls">
-          <button id="themeToggle" class="toggle-btn" aria-label="Toggle theme">
+        <div class="top-controls" style="margin-left:auto;">
+          <button id="themeToggle" class="toggle-btn" aria-pressed="false">
             <span class="toggle-handle"></span>
           </button>
         </div>
@@ -47,55 +42,54 @@
         <div class="system">No messages yet — say something to start the conversation.</div>
       </div>
 
-      <form id="chatForm" class="input-row">
-        <input id="messageInput" type="text" placeholder="Type your message..." aria-label="Message input" autocomplete="off" />
-        <button id="sendMessage" type="submit" aria-label="Send message">Send</button>
-      </form>
-
+      <div style="margin-top:14px; display:flex; gap:12px; align-items:center;">
+        <input id="messageInput" type="text" placeholder="Type your message..." aria-label="Message input" />
+        <button id="sendMessage" type="button" aria-label="Send message">Send</button>
+      </div>
     </div>
 
     <!-- SIDE PANEL -->
     <aside class="side">
-
-      <div class="panel">
-        <label for="usernameInput">Username</label>
-        <input id="usernameInput" type="text" placeholder="Enter your username..." aria-label="Username" autocomplete="off" />
-        <p class="hint">Tip: Short usernames make the chat cleaner.</p>
+      <div class="panel" style="padding:16px;">
+        <label class="small" for="usernameInput">Username</label>
+        <input id="usernameInput" type="text" placeholder="Enter your username..." aria-label="Username" />
+        <p style="margin:10px 0 0; color:var(--muted); font-size:0.9rem;">
+          Tip: Set a short username so messages look nicer.
+        </p>
       </div>
 
-      <div class="panel">
+      <div style="padding:0 16px;">
         <button id="googleBtn">Sign in with Google</button>
       </div>
 
-      <div class="panel small-info">
-        <strong>Quick actions</strong>
-        <span>• Press Enter to send</span>
+      <div class="panel" style="padding:12px; display:flex; flex-direction:column; gap:8px;">
+        <strong style="font-size:0.95rem">Quick actions</strong>
+        <div style="color:var(--muted); font-size:0.9rem;">• Press Enter to send</div>
       </div>
 
-      <div class="panel center">
+      <div class="panel" style="padding:16px; text-align:center;">
         <div id="digitalClock"></div>
       </div>
 
-      <!-- DEV Announcements -->
-      <div id="devAnnouncements" class="panel">
+      <!-- DEV Announcements (shows if non-empty). edit the innerText manually or use DB-backed code below) -->
+      <div id="devAnnouncements" class="panel" style="display:block; margin-bottom:12px; padding:10px;">
         <strong>DEV Announcement</strong>
-        <div id="devAnnouncementText">
-          The Dome 1.1 — Light/Dark themes, better performance, optional Google Sign-in,
-          and DEV Message panel. Channels coming next. — Nov 1, 2025
-        </div>
+        <div id="devAnnouncementText" style="margin-top:6px;">The Dome 1.1, now with light & dark themes, better performance, optional Google sign-in (sync username), and a new DEV Message panel. Channels are next. — Nov 1, 2025</div>
       </div>
 
-      <!-- CHANNELS -->
-      <div class="panel">
-        <strong>Channels</strong>
+      <!-- Channels panel -->
+      <div class="panel" style="padding:12px;">
+        <strong style="display:block; margin-bottom:8px;">Channels</strong>
 
-        <div id="channelList" class="channel-list" role="navigation" aria-label="Channels"></div>
+        <div id="channelList" class="channel-list" aria-label="Channels" role="navigation">
+          <!-- channel items will be injected here -->
+        </div>
 
-        <div class="channel-create">
-          <input id="newChannelName" type="text" placeholder="new-channel" aria-label="New channel name" autocomplete="off" />
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <input id="newChannelName" type="text" placeholder="new channel (no spaces)" aria-label="New channel name" />
           <button id="createChannelBtn" type="button">Create</button>
         </div>
-      </div>
+</div>
 
     </aside>
   </div>
@@ -103,13 +97,13 @@
   <!-- Toast -->
   <div id="toast" role="status" aria-live="polite">Username saved!</div>
 
-  <!-- Clock -->
   <script>
     function updateClock() {
       const now = new Date();
-      document.getElementById("digitalClock").textContent =
-        now.toLocaleTimeString([], { hour12: false });
-      setTimeout(updateClock, 1000 - now.getMilliseconds());
+      const timeString = now.toLocaleTimeString([], { hour12: false });
+      document.getElementById("digitalClock").textContent = timeString;
+      const msUntilNext = 1000 - now.getMilliseconds();
+      setTimeout(updateClock, msUntilNext);
     }
     updateClock();
   </script>
