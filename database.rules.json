@@ -2,27 +2,33 @@
   "rules": {
     "channels": {
       ".read": true,
-      ".write": "auth != null",
+      ".write": true,
       ".indexOn": ["timestamp"]
     },
+
     "messages": {
       "$channelId": {
         "$messageId": {
           ".read": true,
-          ".write": "(!data.exists() && newData.exists() && auth != null) || (data.exists() && auth != null && (data.child('uid').val() === auth.uid || auth.uid === 'shELHHG7NJPJqQ0aRb7NR3sPhpJ3'))",
+          ".write": "
+            (!data.exists() && newData.exists()) ||
+            (data.exists() && auth != null && auth.uid === 'shELHHG7NJPJqQ0aRb7NR3sPhpJ3')
+          ",
           ".indexOn": ["timestamp"]
         }
       }
     },
+
     "users": {
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".read": true,
+        ".write": true
       }
     },
+
     "usernames": {
       ".read": true,
-      ".write": "auth != null"
+      ".write": true
     }
   }
 }
