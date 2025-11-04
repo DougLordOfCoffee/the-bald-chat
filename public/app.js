@@ -392,6 +392,11 @@ function setupChannelCreation() {
 function main() {
   initFirebase();
   getDOMElements();
+  
+  // ✅ Add this:
+  localUsername = localStorage.getItem("username") || "Anonymous";
+  if (usernameInput) usernameInput.value = localUsername;
+
   setAppHeight();
   setupUsernameMemory();
   setupSendMessage();
@@ -400,5 +405,6 @@ function main() {
   initChannels();
   setupChannelCreation();
 }
+
 
 document.addEventListener("DOMContentLoaded", main);
