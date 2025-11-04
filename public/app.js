@@ -26,6 +26,8 @@
   let currentChannelMessagesRef = null;
   let localUsername = localStorage.getItem("username") || null;
   let toastTimer = null;
+  let signInInProgress = false;
+
 
   const safeText = (t) => String(t == null ? "" : t);
   const escapeHtml = (s) => String(s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -168,11 +170,20 @@
   }
 
   function setupGoogleLogin() {
-    googleBtn.addEventListener("click", async () => {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      try { await auth.signInWithPopup(provider); } catch (_) {}
-    });
-  }
+  googleBtn.addEventListener("click", async () => {
+    if (signInInProgress) return;
+    signInInProgress = true;
+  
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+      await auth.signInWithPopup(provider);
+    } catch (err) {
+      if (err.code !== "auth/popup-closed-by-user") showToast("Sign-in failed");
+    } finally {
+      signInInProgress = false;
+    }
+  });
+
 
   function setupThemeToggle() {
     themeToggleBtn.addEventListener("click", () => {
