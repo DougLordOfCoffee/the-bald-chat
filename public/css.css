@@ -319,3 +319,12 @@ body.light {
 /* DEV Announcement panel */
 #devAnnouncements { background: rgba(255,255,255,0.02); border-radius:8px; border:1px solid rgba(255,255,255,0.04); }
 #devAnnouncements.show { display:block; }
+
+body.admin {
+  --bg: #020402;
+  --text: #8aff8a;
+  --accent: #00ff00;
+  --accent2: #00c200;
+  --bubble: rgba(0, 255, 0, 0.12);
+  --bubble-alt: rgba(0, 255, 0, 0.18);
+}
