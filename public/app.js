@@ -107,22 +107,32 @@ function sendMessage() {
   $("messageInput").value = "";
 }
 
-function renderMessage({ id, username, text, uid, timestamp }) {
+function renderMessage(data) {
+  if (!data || !data.id) return; // <--- prevents "id undefined" crash
+  
+  const { id, username, text, uid, timestamp } = data;
+
+  // Remove duplicate if already exists
+  const existing = document.getElementById(`msg_${id}`);
+  if (existing) return;
+
   const wrap = document.createElement("div");
   wrap.className = "message" + (username === localUsername ? " mine" : "");
   wrap.id = `msg_${id}`;
 
   wrap.innerHTML = `
     <div class="message-left">
-      <span class="username">${htmlEscape(username)}${uid === ADMIN_UID ? " ⭐" : ""}</span>
-      <div class="message-text">${htmlEscape(text)}</div>
+      <span class="username">${htmlEscape(username || "Anonymous")}${uid === ADMIN_UID ? " ⭐" : ""}</span>
+      <div class="message-text">${htmlEscape(text || "")}</div>
       <span class="meta">${timestamp ? new Date(timestamp).toLocaleString() : ""}</span>
     </div>
     <div class="message-actions"></div>
   `;
 
   const actions = wrap.querySelector(".message-actions");
-  if (auth.currentUser && (uid === auth.currentUser.uid || auth.currentUser.uid === ADMIN_UID)) {
+  const user = auth.currentUser;
+
+  if (user && (uid === user.uid || user.uid === ADMIN_UID)) {
     const del = document.createElement("button");
     del.className = "delete-btn";
     del.innerHTML = "&times;";
