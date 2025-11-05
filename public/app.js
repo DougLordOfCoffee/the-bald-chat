@@ -49,6 +49,11 @@ window.addEventListener("orientationchange", autoHeight);
 // ------------------------------------------------------
 // USERNAME HANDLING
 // ------------------------------------------------------
+function enableAdminMode() {
+  document.body.classList.add("admin");
+  console.log("ADMIN MODE ENABLED");
+}
+
 async function saveUsername(newName) {
   newName = newName.trim();
   if (!newName) return;
@@ -132,12 +137,20 @@ function renderMessage(data) {
   const actions = wrap.querySelector(".message-actions");
   const user = auth.currentUser;
 
-  if (user && (uid === user.uid || user.uid === ADMIN_UID)) {
+  if (isAdmin) {
     const del = document.createElement("button");
     del.className = "delete-btn";
-    del.innerHTML = "&times;";
-    del.onclick = () => confirm("Delete message?") && db.ref(`messages/${currentChannel}/${id}`).remove();
-    actions.appendChild(del);
+    del.innerText = "✖";
+    del.onclick = () => deleteMessage(channelId, messageId);
+    msgDiv.appendChild(del);
+  
+    const edit = document.createElement("button");
+    edit.className = "delete-btn";
+    edit.innerText = "✎";
+    edit.onclick = () => editMessage(channelId, messageId, message.text);
+    msgDiv.appendChild(edit);
+}
+
   }
 
   $("messages").appendChild(wrap);
@@ -187,6 +200,19 @@ function addChannelItem(id, { name }) {
   el.textContent = `# ${name}`;
   el.onclick = () => selectChannel(id);
   $("channelList").appendChild(el);
+  if (isAdmin) {
+    const del = document.createElement("button");
+    del.className = "delete-btn";
+    del.innerText = "🗑";
+    del.onclick = (e) => {
+      e.stopPropagation();
+      if (confirm(`Delete channel: ${name}?`)) {
+        remove(ref(db, `channels/${channelId}`));
+      }
+    };
+    item.appendChild(del);
+}
+
 }
 
 function selectChannel(id) {
@@ -215,6 +241,22 @@ function setupGoogleLogin() {
     }
   });
 }
+
+//------------------------------------------------------
+//DELETE FUNCTIONS
+//------------------------------------------------------
+function deleteMessage(channelId, messageId) {
+  const msgRef = ref(db, `channels/${channelId}/messages/${messageId}`);
+  remove(msgRef);
+}
+
+function editMessage(channelId, messageId, oldText) {
+  const newText = prompt("Edit message:", oldText);
+  if (!newText) return;
+  const msgRef = ref(db, `channels/${channelId}/messages/${messageId}/text`);
+  set(msgRef, newText);
+}
+
 
 // ------------------------------------------------------
 // MAIN
