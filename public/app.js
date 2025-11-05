@@ -241,7 +241,7 @@ function displayMessageForChannel(message) {
 // =====================
 // --- CHANNELS ---
 // =====================
-aasync function initChannels() {
+async function initChannels() {
   if (!database) return;
   channelsRef = database.ref("channels");
 
