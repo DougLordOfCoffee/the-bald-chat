@@ -1,5 +1,5 @@
 // ======================================================
-// BALD CHAT 2.0 — NOW FORMATTED & FUNCTIONING
+// BALD CHAT 2.0 — Super Duper Awesome Sauce Refactor
 // ======================================================
 
 // Config
@@ -12,18 +12,13 @@ const firebaseConfig = {
   appId: "1:831148484483:web:23747c98adcd6e989db8b6",
   databaseURL: "https://the-bald-chat-default-rtdb.firebaseio.com"
 };
-
-// Your admin UID (from Firebase Auth)
 const ADMIN_UID = "shELHHG7NJPJqQ0aRb7NR3sPhpJ3";
 
 // Shortcuts
 const $ = id => document.getElementById(id);
-const htmlEscape = s =>
-  (s || "").replace(/[&<>"']/g, c => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[c]));
+const htmlEscape = s => (s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-// Firebase
+// Firebase Boot
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
@@ -31,12 +26,10 @@ const auth = firebase.auth();
 // State
 let localUsername = localStorage.getItem("username") || "Anonymous";
 let currentChannel = null;
-let isAdmin = false;
 let unsubscribeMessages = null;
 
-
 // ------------------------------------------------------
-// UI
+// UI TOOLS
 // ------------------------------------------------------
 const toast = (msg, time = 1500) => {
   const el = $("toast");
@@ -53,19 +46,8 @@ const autoHeight = () => {
 window.addEventListener("resize", autoHeight);
 window.addEventListener("orientationchange", autoHeight);
 
-
 // ------------------------------------------------------
-// ADMIN MODE
-// ------------------------------------------------------
-function enableAdminMode() {
-  isAdmin = true;
-  document.body.classList.add("admin");
-  console.log("%cADMIN MODE ENABLED", "color:#00ff9d; font-weight:bold;");
-}
-
-
-// ------------------------------------------------------
-// USERNAME MANAGEMENT
+// USERNAME HANDLING
 // ------------------------------------------------------
 async function saveUsername(newName) {
   newName = newName.trim();
@@ -82,9 +64,10 @@ async function saveUsername(newName) {
     return;
   }
 
-  if (localUsername && user)
-    await usernamesRef.child(localUsername.toLowerCase()).remove().catch(() => {});
+  // Remove old reference
+  if (localUsername && user) await usernamesRef.child(localUsername.toLowerCase()).remove().catch(()=>{});
 
+  // Save new
   if (user) {
     await usernamesRef.child(newName.toLowerCase()).set(user.uid);
     await usersRef.child(user.uid).child("username").set(newName);
@@ -107,7 +90,6 @@ function setupUsername() {
   });
 }
 
-
 // ------------------------------------------------------
 // MESSAGES
 // ------------------------------------------------------
@@ -115,7 +97,7 @@ function sendMessage() {
   const text = $("messageInput").value.trim();
   if (!text || !currentChannel) return;
 
-  db.ref(`channels/${currentChannel}/messages`).push({
+  db.ref(`messages/${currentChannel}`).push({
     text,
     username: localUsername,
     uid: auth.currentUser?.uid || null,
@@ -125,39 +107,37 @@ function sendMessage() {
   $("messageInput").value = "";
 }
 
-function renderMessage({ id, text, username, uid, timestamp }) {
-  if (!id) return;
+function renderMessage(data) {
+  if (!data || !data.id) return; // <--- prevents "id undefined" crash
+  
+  const { id, username, text, uid, timestamp } = data;
 
-  if (document.getElementById(`msg_${id}`)) return;
+  // Remove duplicate if already exists
+  const existing = document.getElementById(`msg_${id}`);
+  if (existing) return;
 
   const wrap = document.createElement("div");
   wrap.className = "message" + (username === localUsername ? " mine" : "");
   wrap.id = `msg_${id}`;
 
   wrap.innerHTML = `
-    <span class="username">${htmlEscape(username || "Anonymous")}${uid === ADMIN_UID ? " ⭐" : ""}</span>
-    <div class="message-text">${htmlEscape(text || "")}</div>
-    <span class="meta">${timestamp ? new Date(timestamp).toLocaleString() : ""}</span>
+    <div class="message-left">
+      <span class="username">${htmlEscape(username || "Anonymous")}${uid === ADMIN_UID ? " ⭐" : ""}</span>
+      <div class="message-text">${htmlEscape(text || "")}</div>
+      <span class="meta">${timestamp ? new Date(timestamp).toLocaleString() : ""}</span>
+    </div>
+    <div class="message-actions"></div>
   `;
 
-  // ADMIN BUTTONS
-  if (isAdmin) {
-    const actions = document.createElement("div");
-    actions.className = "message-actions";
+  const actions = wrap.querySelector(".message-actions");
+  const user = auth.currentUser;
 
+  if (user && (uid === user.uid || user.uid === ADMIN_UID)) {
     const del = document.createElement("button");
     del.className = "delete-btn";
-    del.textContent = "✖";
-    del.onclick = () => deleteMessage(currentChannel, id);
+    del.innerHTML = "&times;";
+    del.onclick = () => confirm("Delete message?") && db.ref(`messages/${currentChannel}/${id}`).remove();
     actions.appendChild(del);
-
-    const edit = document.createElement("button");
-    edit.className = "delete-btn";
-    edit.textContent = "✎";
-    edit.onclick = () => editMessage(currentChannel, id, text);
-    actions.appendChild(edit);
-
-    wrap.appendChild(actions);
   }
 
   $("messages").appendChild(wrap);
@@ -166,36 +146,23 @@ function renderMessage({ id, text, username, uid, timestamp }) {
 
 function loadMessages(channel) {
   if (unsubscribeMessages) unsubscribeMessages.off();
-  $("messages").innerHTML = "";
 
+  $("messages").innerHTML = `<div class="system">Loading messages…</div>`;
   currentChannel = channel;
 
-  unsubscribeMessages = db.ref(`channels/${channel}/messages`).orderByChild("timestamp");
+  unsubscribeMessages = db.ref(`messages/${channel}`).orderByChild("timestamp");
 
-  unsubscribeMessages.on("child_added", snap =>
-    renderMessage({ id: snap.key, ...snap.val() })
-  );
+  unsubscribeMessages.on("child_added", snap => {
+    renderMessage({ id: snap.key, ...snap.val() });
+  });
 
   unsubscribeMessages.on("child_removed", snap => {
     const el = $(`msg_${snap.key}`);
     if (el) el.remove();
   });
+
+  $("messages").innerHTML = "";
 }
-
-
-// ------------------------------------------------------
-// ADMIN MESSAGE FUNCS
-// ------------------------------------------------------
-function deleteMessage(channelId, messageId) {
-  db.ref(`channels/${channelId}/messages/${messageId}`).remove();
-}
-
-function editMessage(channelId, messageId, oldText) {
-  const newText = prompt("Edit message:", oldText);
-  if (!newText) return;
-  db.ref(`channels/${channelId}/messages/${messageId}/text`).set(newText);
-}
-
 
 // ------------------------------------------------------
 // CHANNELS
@@ -207,30 +174,18 @@ async function loadChannels() {
   list.innerHTML = "";
   channels.forEach(c => addChannelItem(c.key, c.val()));
 
-  if (!currentChannel && channels.exists())
-    selectChannel(Object.keys(channels.val())[0]);
+  if (!currentChannel)
+    selectChannel(Object.keys(channels.val() || {})[0]);
 }
 
 function addChannelItem(id, { name }) {
+  if ($(`chan_${id}`)) return;
+
   const el = document.createElement("div");
   el.className = "channel-item";
   el.id = `chan_${id}`;
   el.textContent = `# ${name}`;
   el.onclick = () => selectChannel(id);
-
-  if (isAdmin) {
-    const del = document.createElement("button");
-    del.className = "delete-btn";
-    del.textContent = "🗑";
-    del.onclick = e => {
-      e.stopPropagation();
-      if (confirm(`Delete channel: ${name}?`)) {
-        db.ref(`channels/${id}`).remove();
-      }
-    };
-    el.appendChild(del);
-  }
-
   $("channelList").appendChild(el);
 }
 
@@ -242,34 +197,29 @@ function selectChannel(id) {
   loadMessages(id);
 }
 
-
 // ------------------------------------------------------
 // LOGIN
 // ------------------------------------------------------
 function setupGoogleLogin() {
-  $("googleBtn").onclick = () =>
-    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-
+  $("googleBtn").onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
   auth.onAuthStateChanged(async user => {
-    $("googleBtn").textContent = user ? "Signed In ✅" : "Sign in with Google";
-
-    if (user && user.uid === ADMIN_UID) enableAdminMode();
-
     if (user) {
+      $("googleBtn").textContent = "Signed In ✅";
       const snap = await db.ref(`users/${user.uid}/username`).get();
       if (snap.exists()) {
         localUsername = snap.val();
         $("usernameInput").value = localUsername;
       }
+    } else {
+      $("googleBtn").textContent = "Sign in with Google";
     }
   });
 }
 
-
 // ------------------------------------------------------
 // MAIN
 // ------------------------------------------------------
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   autoHeight();
   setupUsername();
   setupGoogleLogin();
