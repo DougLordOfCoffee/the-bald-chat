@@ -144,6 +144,7 @@ function renderMessage(data) {
   $("messages").scrollTop = $("messages").scrollHeight;
 }
 
+
 function loadMessages(channel) {
   if (unsubscribeMessages) unsubscribeMessages.off();
 
