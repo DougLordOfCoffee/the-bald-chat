@@ -241,20 +241,22 @@ function displayMessageForChannel(message) {
 // =====================
 // --- CHANNELS ---
 // =====================
-async function initChannels() {
+aasync function initChannels() {
   if (!database) return;
   channelsRef = database.ref("channels");
 
-  // Ensure at least one channel exists
   const snap = await channelsRef.get();
+
   if (!snap.exists()) {
     const chRef = await channelsRef.push({ name: 'general', createdBy: auth?.currentUser?.uid || 'system', timestamp: Date.now() });
-    currentChannelId = chRef.key;
+    selectChannel(chRef.key); // <-- attach listener immediately
+  } else {
+    const firstChannelId = Object.keys(snap.val())[0];
+    selectChannel(firstChannelId); // <-- auto-select first existing channel
   }
 
   channelsRef.orderByChild('timestamp').on("child_added", (snap) => {
     const ch = snap.val(); ch.id = snap.key; renderChannelItem(ch);
-    if (!currentChannelId) selectChannel(ch.id);
   });
   channelsRef.on("child_changed", (snap) => updateChannelItem({ ...snap.val(), id: snap.key }));
   channelsRef.on("child_removed", (snap) => {
