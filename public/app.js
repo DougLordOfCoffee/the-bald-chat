@@ -25,9 +25,19 @@ const auth = firebase.auth();
 
 // State
 let localUsername = localStorage.getItem("username") || "Anonymous";
+let localAvatar = localStorage.getItem("avatar") || "";
 let currentChannel = null;
 let unsubscribeMessages = null;
 let notificationPermission = false;
+let userStatuses = {}; // Cache for user statuses
+
+// Load custom colors
+const customPrimary = localStorage.getItem("customPrimary") || "#9b5cf6";
+const customSecondary = localStorage.getItem("customSecondary") || "#00e0ff";
+document.documentElement.style.setProperty('--accent', customPrimary);
+document.documentElement.style.setProperty('--accent2', customSecondary);
+$("primaryColor").value = customPrimary;
+$("secondaryColor").value = customSecondary;
 
 // ------------------------------------------------------
 // UI TOOLS
@@ -39,6 +49,23 @@ const toast = (msg, time = 1500) => {
   el.classList.add("show");
   setTimeout(() => el.classList.remove("show"), time);
 };
+
+async function loadUserStatuses() {
+  const statusesSnap = await db.ref("statuses").get();
+  userStatuses = statusesSnap.val() || {};
+}
+
+const getUserStatus = (uid) => userStatuses[uid] || null;
+
+function applyCustomColors() {
+  const primary = $("primaryColor").value;
+  const secondary = $("secondaryColor").value;
+  document.documentElement.style.setProperty('--accent', primary);
+  document.documentElement.style.setProperty('--accent2', secondary);
+  localStorage.setItem("customPrimary", primary);
+  localStorage.setItem("customSecondary", secondary);
+  toast("Colors applied!");
+}
 
 const autoHeight = () => {
   const app = document.querySelector(".app");
@@ -96,9 +123,26 @@ async function saveUsername(newName) {
   toast("Username updated!");
 }
 
+async function saveAvatar(newAvatar) {
+  newAvatar = newAvatar.trim();
+
+  const user = auth.currentUser;
+  const usersRef = db.ref("users");
+
+  if (user) {
+    await usersRef.child(user.uid).child("avatar").set(newAvatar);
+  }
+
+  localAvatar = newAvatar;
+  localStorage.setItem("avatar", newAvatar);
+  toast("Avatar updated!");
+}
+
 function setupUsername() {
   $("usernameInput").value = localUsername;
+  $("avatarInput").value = localAvatar;
   $("usernameInput").addEventListener("blur", () => saveUsername($("usernameInput").value));
+  $("avatarInput").addEventListener("blur", () => saveAvatar($("avatarInput").value));
   $("usernameInput").addEventListener("keydown", e => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -118,6 +162,7 @@ function sendMessage() {
   db.ref(`messages/${currentChannel}`).push({
     text,
     username: localUsername,
+    avatar: localAvatar,
     uid: auth.currentUser?.uid || null,
     timestamp: firebase.database.ServerValue.TIMESTAMP
   });
@@ -128,7 +173,7 @@ function sendMessage() {
 function renderMessage(data) {
   if (!data || !data.id) return; // <--- prevents "id undefined" crash
   
-  const { id, username, text, uid, timestamp } = data;
+  const { id, username, text, avatar, uid, timestamp } = data;
 
   // Remove duplicate if already exists
   const existing = document.getElementById(`msg_${id}`);
@@ -142,11 +187,17 @@ function renderMessage(data) {
   wrap.className = "message" + (username === localUsername ? " mine" : "");
   wrap.id = `msg_${id}`;
 
+  const status = getUserStatus(uid);
+  const statusColor = status === 'dev' ? '#ffd700' : status === 'mod' ? '#ff4444' : status === 'vip' ? '#00ff88' : customSecondary;
+
   wrap.innerHTML = `
     <div class="message-left">
-      <span class="username">${htmlEscape(username || "Anonymous")}${uid === ADMIN_UID ? " ⭐" : ""}</span>
-      <div class="message-text">${htmlEscape(text || "")}</div>
-      <span class="meta">${timestamp ? new Date(timestamp).toLocaleString() : ""}</span>
+      ${avatarHtml}
+      <div class="message-content">
+        <span class="username" style="color: ${statusColor};">${htmlEscape(username || "Anonymous")}${uid === ADMIN_UID ? " ⭐" : ""}</span>
+        <div class="message-text">${htmlEscape(text || "")}</div>
+        <span class="meta">${timestamp ? new Date(timestamp).toLocaleString() : ""}</span>
+      </div>
     </div>
     <div class="message-actions"></div>
   `;
@@ -251,10 +302,17 @@ function setupGoogleLogin() {
   auth.onAuthStateChanged(async user => {
     if (user) {
       $("googleBtn").textContent = "Signed In ✅";
-      const snap = await db.ref(`users/${user.uid}/username`).get();
-      if (snap.exists()) {
-        localUsername = snap.val();
-        $("usernameInput").value = localUsername;
+      const userSnap = await db.ref(`users/${user.uid}`).get();
+      if (userSnap.exists()) {
+        const data = userSnap.val();
+        if (data.username) {
+          localUsername = data.username;
+          $("usernameInput").value = localUsername;
+        }
+        if (data.avatar) {
+          localAvatar = data.avatar;
+          $("avatarInput").value = localAvatar;
+        }
       }
     } else {
       $("googleBtn").textContent = "Sign in with Google";
@@ -296,6 +354,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupUsername();
   setupGoogleLogin();
   await requestNotificationPermission();
+  await loadUserStatuses();
   loadChannels();
 
   $("sendMessage").onclick = sendMessage;
@@ -303,4 +362,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("emailSignInBtn").onclick = signInWithEmail;
   $("emailSignUpBtn").onclick = signUpWithEmail;
   $("createChannelBtn").onclick = createChannel;
+  $("applyColors").onclick = applyCustomColors;
 });

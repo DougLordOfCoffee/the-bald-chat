@@ -53,6 +53,8 @@
       <div class="panel" style="padding:16px;">
         <label class="small" for="usernameInput">Username</label>
         <input id="usernameInput" type="text" placeholder="Enter your username..." aria-label="Username" />
+        <label class="small" for="avatarInput" style="margin-top:10px; display:block;">Avatar URL</label>
+        <input id="avatarInput" type="url" placeholder="https://example.com/avatar.png" aria-label="Avatar URL" />
         <p style="margin:10px 0 0; color:var(--muted); font-size:0.9rem;">
           Tip: Set a short username so messages look nicer.
         </p>
@@ -96,6 +98,16 @@
           <button id="createChannelBtn" type="button">Create</button>
         </div>
 </div>
+
+      <!-- Settings panel -->
+      <div class="panel" style="padding:12px;">
+        <strong style="display:block; margin-bottom:8px;">Settings</strong>
+        <label class="small" for="primaryColor">Primary Color</label>
+        <input id="primaryColor" type="color" value="#9b5cf6" />
+        <label class="small" for="secondaryColor">Secondary Color</label>
+        <input id="secondaryColor" type="color" value="#00e0ff" />
+        <button id="applyColors" style="margin-top:10px;">Apply Colors</button>
+      </div>
 
     </aside>
   </div>
