@@ -34,7 +34,6 @@ body {
   min-height: 100vh;
   display: flex;
   align-items: stretch;
-  justify-content: center;
   padding: 28px;
   box-sizing: border-box;
 }
@@ -43,7 +42,7 @@ body {
 .app {
   min-height: calc(100vh - 56px);
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 1fr 200px;
   gap: 28px;
 }
 
