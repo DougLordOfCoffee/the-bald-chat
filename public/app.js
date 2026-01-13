@@ -134,6 +134,10 @@ function renderMessage(data) {
   const existing = document.getElementById(`msg_${id}`);
   if (existing) return;
 
+  // Remove loading message if present
+  const loading = $("messages").querySelector(".system");
+  if (loading) loading.remove();
+
   const wrap = document.createElement("div");
   wrap.className = "message" + (username === localUsername ? " mine" : "");
   wrap.id = `msg_${id}`;
@@ -184,8 +188,6 @@ function loadMessages(channel) {
     const el = $(`msg_${snap.key}`);
     if (el) el.remove();
   });
-
-  $("messages").innerHTML = "";
 }
 
 // ------------------------------------------------------
@@ -198,8 +200,15 @@ async function loadChannels() {
   list.innerHTML = "";
   channels.forEach(c => addChannelItem(c.key, c.val()));
 
-  if (!currentChannel)
-    selectChannel(Object.keys(channels.val() || {})[0]);
+  const channelKeys = Object.keys(channels.val() || {});
+  if (channelKeys.length === 0) {
+    // Create default channel if none exist
+    await db.ref("channels/main").set({ name: "main" });
+    addChannelItem("main", { name: "main" });
+    selectChannel("main");
+  } else if (!currentChannel) {
+    selectChannel(channelKeys[0]);
+  }
 }
 
 function addChannelItem(id, { name }) {
@@ -219,6 +228,19 @@ function selectChannel(id) {
     el.classList.toggle("active", el.id === `chan_${id}`)
   );
   loadMessages(id);
+}
+
+async function createChannel() {
+  const name = $("newChannelName").value.trim().replace(/\s+/g, '');
+  if (!name) return toast("Enter a channel name");
+
+  const channelsRef = db.ref("channels");
+  const existing = await channelsRef.child(name).get();
+  if (existing.exists()) return toast("Channel already exists");
+
+  await channelsRef.child(name).set({ name });
+  $("newChannelName").value = "";
+  loadChannels();
 }
 
 // ------------------------------------------------------
@@ -280,4 +302,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("messageInput").addEventListener("keydown", e => e.key === "Enter" && sendMessage());
   $("emailSignInBtn").onclick = signInWithEmail;
   $("emailSignUpBtn").onclick = signUpWithEmail;
+  $("createChannelBtn").onclick = createChannel;
 });
