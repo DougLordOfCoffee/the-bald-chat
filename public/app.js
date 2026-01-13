@@ -230,7 +230,7 @@ function loadMessages(channel) {
   $("messages").innerHTML = `<div class="system">Loading messages…</div>`;
   currentChannel = channel;
 
-  unsubscribeMessages = db.ref(`messages/${channel}`).orderByChild("timestamp");
+  unsubscribeMessages = db.ref(`messages/${channel}`);
 
   unsubscribeMessages.on("child_added", snap => {
     console.log('Message added:', snap.key, snap.val());
