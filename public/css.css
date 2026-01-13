@@ -240,6 +240,11 @@ body.light {
 .delete-btn:hover { opacity: 1; }
 
 /* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent2); }
+
 #messages::-webkit-scrollbar { width: 8px; }
 #messages::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 10px; }
 #messages::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
@@ -259,6 +264,20 @@ body.light {
 }
 #googleBtn:hover { background: #1f1f1f; border-color: #777; }
 #googleBtn.signed-in { border-color: #00ff9d; box-shadow: 0 0 12px #00ff9d88; color: #00ff9d; }
+
+/* Email auth buttons */
+#emailSignInBtn, #emailSignUpBtn {
+  background: #141414;
+  color: #d9d9d9;
+  border: 2px solid #444;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.25s ease;
+  font-size: 12px;
+  margin-right: 5px;
+}
+#emailSignInBtn:hover, #emailSignUpBtn:hover { background: #1f1f1f; border-color: #777; }
 
 /* Channels */
 .channel-list {

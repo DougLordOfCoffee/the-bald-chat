@@ -27,6 +27,7 @@ const auth = firebase.auth();
 let localUsername = localStorage.getItem("username") || "Anonymous";
 let currentChannel = null;
 let unsubscribeMessages = null;
+let notificationPermission = false;
 
 // ------------------------------------------------------
 // UI TOOLS
@@ -47,8 +48,25 @@ window.addEventListener("resize", autoHeight);
 window.addEventListener("orientationchange", autoHeight);
 
 // ------------------------------------------------------
-// USERNAME HANDLING
+// NOTIFICATIONS
 // ------------------------------------------------------
+async function requestNotificationPermission() {
+  if ('Notification' in window) {
+    const permission = await Notification.requestPermission();
+    notificationPermission = permission === 'granted';
+    return notificationPermission;
+  }
+  return false;
+}
+
+function showNotification(title, body) {
+  if (notificationPermission && document.hidden) {
+    new Notification(title, {
+      body: body,
+      icon: 'Favicon.png'
+    });
+  }
+}
 async function saveUsername(newName) {
   newName = newName.trim();
   if (!newName) return;
@@ -142,6 +160,11 @@ function renderMessage(data) {
 
   $("messages").appendChild(wrap);
   $("messages").scrollTop = $("messages").scrollHeight;
+
+  // Show notification for new messages from others
+  if (username !== localUsername) {
+    showNotification(`${username} in #${currentChannel}`, text);
+  }
 }
 
 
@@ -217,6 +240,32 @@ function setupGoogleLogin() {
   });
 }
 
+async function signInWithEmail() {
+  const email = $("emailInput").value.trim();
+  const password = $("passwordInput").value.trim();
+  if (!email || !password) return toast("Enter email and password");
+
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    toast("Signed in!");
+  } catch (error) {
+    toast("Sign in failed: " + error.message);
+  }
+}
+
+async function signUpWithEmail() {
+  const email = $("emailInput").value.trim();
+  const password = $("passwordInput").value.trim();
+  if (!email || !password) return toast("Enter email and password");
+
+  try {
+    await auth.createUserWithEmailAndPassword(email, password);
+    toast("Account created!");
+  } catch (error) {
+    toast("Sign up failed: " + error.message);
+  }
+}
+
 // ------------------------------------------------------
 // MAIN
 // ------------------------------------------------------
@@ -224,8 +273,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   autoHeight();
   setupUsername();
   setupGoogleLogin();
+  await requestNotificationPermission();
   loadChannels();
 
   $("sendMessage").onclick = sendMessage;
   $("messageInput").addEventListener("keydown", e => e.key === "Enter" && sendMessage());
+  $("emailSignInBtn").onclick = signInWithEmail;
+  $("emailSignUpBtn").onclick = signUpWithEmail;
 });
