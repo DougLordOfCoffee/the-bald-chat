@@ -224,6 +224,7 @@ function renderMessage(data) {
 
 
 function loadMessages(channel) {
+  console.log('Loading messages for channel:', channel);
   if (unsubscribeMessages) unsubscribeMessages.off();
 
   $("messages").innerHTML = `<div class="system">Loading messages…</div>`;
@@ -232,6 +233,7 @@ function loadMessages(channel) {
   unsubscribeMessages = db.ref(`messages/${channel}`).orderByChild("timestamp");
 
   unsubscribeMessages.on("child_added", snap => {
+    console.log('Message added:', snap.key, snap.val());
     renderMessage({ id: snap.key, ...snap.val() });
   });
 
@@ -243,6 +245,7 @@ function loadMessages(channel) {
   // If no messages after 2 seconds, show no messages
   setTimeout(() => {
     if (!$("messages").querySelector(".message")) {
+      console.log('No messages found, showing no messages');
       $("messages").innerHTML = `<div class="system">No messages yet — say something to start the conversation.</div>`;
     }
   }, 2000);
@@ -252,15 +255,19 @@ function loadMessages(channel) {
 // CHANNELS
 // ------------------------------------------------------
 async function loadChannels() {
+  console.log('Loading channels');
   const list = $("channelList");
   const channels = await db.ref("channels").get();
+  console.log('Channels:', channels.val());
 
   list.innerHTML = "";
   channels.forEach(c => addChannelItem(c.key, c.val()));
 
   const channelKeys = Object.keys(channels.val() || {});
+  console.log('Channel keys:', channelKeys);
   if (channelKeys.length === 0) {
     // Create default channel if none exist
+    console.log('Creating default main channel');
     await db.ref("channels/main").set({ name: "main" });
     addChannelItem("main", { name: "main" });
     selectChannel("main");

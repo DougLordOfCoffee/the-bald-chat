@@ -43,7 +43,7 @@ body {
 .app {
   min-height: calc(100vh - 56px);
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 380px;
   gap: 28px;
 }
 
