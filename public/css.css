@@ -144,7 +144,7 @@ button:focus-visible, input:focus-visible { box-shadow: 0 0 0 4px rgba(155,92,24
 }
 
 /* Inputs */
-#messageInput, #usernameInput, #avatarInput {
+#messageInput, #usernameInput, #avatarInput, #emailInput, #passwordInput, #newChannelName {
   width: 100%;
   padding: 12px 14px;
   border-radius: 10px;
@@ -155,7 +155,7 @@ button:focus-visible, input:focus-visible { box-shadow: 0 0 0 4px rgba(155,92,24
   font-size: 1rem;
   transition: border-color 0.2s;
 }
-#messageInput:focus, #usernameInput:focus, #avatarInput:focus {
+#messageInput:focus, #usernameInput:focus, #avatarInput:focus, #emailInput:focus, #passwordInput:focus, #newChannelName:focus {
   border-color: var(--accent2);
   box-shadow: 0 0 8px rgba(0, 224, 255, 0.25);
 }

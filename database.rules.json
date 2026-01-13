@@ -23,6 +23,11 @@
     "usernames": {
       ".read": true,
       ".write": true
+    },
+
+    "statuses": {
+      ".read": true,
+      ".write": true
     }
   }
 }

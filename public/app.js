@@ -239,6 +239,13 @@ function loadMessages(channel) {
     const el = $(`msg_${snap.key}`);
     if (el) el.remove();
   });
+
+  // If no messages after 2 seconds, show no messages
+  setTimeout(() => {
+    if (!$("messages").querySelector(".message")) {
+      $("messages").innerHTML = `<div class="system">No messages yet — say something to start the conversation.</div>`;
+    }
+  }, 2000);
 }
 
 // ------------------------------------------------------
