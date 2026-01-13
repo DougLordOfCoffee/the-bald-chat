@@ -230,7 +230,7 @@ function loadMessages(channel) {
   $("messages").innerHTML = `<div class="system">Loading messages…</div>`;
   currentChannel = channel;
 
-  unsubscribeMessages = db.ref(`messages/${channel}`);
+  unsubscribeMessages = db.ref(`messages/${channel}`).orderByChild("timestamp");
 
   unsubscribeMessages.on("child_added", snap => {
     console.log('Message added:', snap.key, snap.val());
@@ -272,7 +272,8 @@ async function loadChannels() {
     addChannelItem("main", { name: "main" });
     selectChannel("main");
   } else if (!currentChannel) {
-    selectChannel(channelKeys[0]);
+    const firstChannel = channels.val()[channelKeys[0]];
+    selectChannel(firstChannel.name);
   }
 }
 
@@ -283,16 +284,16 @@ function addChannelItem(id, { name }) {
   el.className = "channel-item";
   el.id = `chan_${id}`;
   el.textContent = `# ${name}`;
-  el.onclick = () => selectChannel(id);
+  el.onclick = () => selectChannel(name);
   $("channelList").appendChild(el);
 }
 
-function selectChannel(id) {
-  currentChannel = id;
+function selectChannel(channelName) {
+  currentChannel = channelName;
   document.querySelectorAll(".channel-item").forEach(el =>
-    el.classList.toggle("active", el.id === `chan_${id}`)
+    el.classList.toggle("active", el.textContent === `# ${channelName}`)
   );
-  loadMessages(id);
+  loadMessages(channelName);
 }
 
 async function createChannel() {
@@ -306,6 +307,7 @@ async function createChannel() {
   await channelsRef.child(name).set({ name });
   $("newChannelName").value = "";
   loadChannels();
+  selectChannel(name);
 }
 
 // ------------------------------------------------------
